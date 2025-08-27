@@ -246,6 +246,20 @@ npx prisma format
 - `PUT /categories/:id` - Update category
 - `DELETE /categories/:id` - Delete category
 
+## 🔒 Environment Variables
+
+### Backend (.env)
+```env
+DATABASE_URL="postgresql://postgres:postgres@db:5434/app?schema=public"
+PORT=5001
+NODE_ENV=development
+JWT_SECRET=your-secret-key
+```
+
+### Frontend (.env.local)
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
 
 ## 🚀 Deployment
 
@@ -292,4 +306,3 @@ For technical support or questions:
 ---
 
 **Built with ❤️ using modern web technologies**
-# AU.NONGTOTA-WHEREHOUSE
