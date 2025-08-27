@@ -1,0 +1,342 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  password  String
+  fullName  String?
+  role      Role      @default(WORKER)
+  createdAt DateTime  @default(now())
+  branchId  Int
+  updatedAt DateTime  @updatedAt
+  sessions  Session[]
+  auditLogs AuditLog[]
+  branch    Branch    @relation(fields: [branchId], references: [id])
+  billsCreated    Bill[]    @relation("BillCreatedBy")
+  paymentsCreated Payment[] @relation("PaymentCreatedBy")
+}
+
+model Branch {
+  id        Int        @id @default(autoincrement())
+  name      String
+  address   String?
+  createdAt DateTime   @default(now())
+  JobOrder  JobOrder[]
+  products  Product[]
+  users     User[]
+  auditLogs AuditLog[]
+  bills     Bill[]
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  skuPrefix String?
+  products  Product[]
+}
+
+model Supplier {
+  id             Int             @id @default(autoincrement())
+  name           String
+  contact        String?
+  phone          String?
+  email          String?
+  createdAt      DateTime        @default(now())
+  purchaseOrders PurchaseOrder[]
+}
+
+model Product {
+  id                Int                 @id @default(autoincrement())
+  sku               String              @unique
+  name              String
+  description       String?
+  categoryId        Int?
+  costPrice         Float
+  sellPrice         Float
+  minStockLevel     Int                 @default(1)
+  createdAt         DateTime            @default(now())
+  branchId          Int
+  stockQuantity     Int                 @default(0)
+  version           Int                 @default(1)
+  barcode           String?             @unique
+  isDeleted         Boolean             @default(false)
+  deletedAt         DateTime?
+  JobOrderItem      JobOrderItem[]
+  branch            Branch              @relation(fields: [branchId], references: [id])
+  category          Category?           @relation(fields: [categoryId], references: [id])
+  PurchaseOrderItem PurchaseOrderItem[]
+  StockTransactions StockTransaction[]
+  billItems         BillItem[]
+
+  @@index([branchId])
+  @@index([sku])
+  @@index([barcode])
+  @@index([isDeleted])
+}
+
+model StockTransaction {
+  id           Int       @id @default(autoincrement())
+  productId    Int
+  branchId     Int
+  qtyChange    Int
+  type         TxType
+  reference    String?
+  note         String?
+  createdBy    Int?
+  createdAt    DateTime  @default(now())
+  balanceAfter Int?
+  jobOrderId   Int?
+  jobOrder     JobOrder? @relation(fields: [jobOrderId], references: [id])
+  product      Product   @relation(fields: [productId], references: [id])
+}
+
+model PurchaseOrder {
+  id         Int                 @id @default(autoincrement())
+  supplierId Int
+  branchId   Int
+  status     POStatus            @default(PENDING)
+  totalCost  Float?
+  createdAt  DateTime            @default(now())
+  jobOrderId Int?
+  jobOrder   JobOrder?           @relation(fields: [jobOrderId], references: [id])
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  items      PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int
+  productId       Int
+  qty             Int
+  unitCost        Float
+  product         Product       @relation(fields: [productId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+}
+
+model JobOrder {
+  id                Int                @id @default(autoincrement())
+  jobNumber         String             @unique
+  customerId        Int                // เพิ่ม customerId
+  customerName      String
+  phoneNumber       String
+  carType           String
+  licensePlate      String
+  issueDetail       String
+  jobDetail         String
+  status            JobStatus          @default(OPEN)
+  branchId          Int
+  createdAt         DateTime           @default(now())
+  branch            Branch             @relation(fields: [branchId], references: [id])
+  customer          Customer           @relation(fields: [customerId], references: [id]) // เพิ่มความสัมพันธ์
+  items             JobOrderItem[]
+  purchaseOrders    PurchaseOrder[]
+  stockTransactions StockTransaction[]
+  bills             Bill[]             // เพิ่มความสัมพันธ์กับ Bill
+
+  @@index([branchId])
+  @@index([customerId]) // เพิ่ม index
+  @@index([licensePlate])
+}
+
+model JobOrderItem {
+  id         Int      @id @default(autoincrement())
+  jobOrderId Int
+  productId  Int
+  qty        Int
+  unitPrice  Float
+  createdAt  DateTime @default(now())
+  jobOrder   JobOrder @relation(fields: [jobOrderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  action      String        // เช่น "CREATE_PRODUCT", "UPDATE_STOCK", "DELETE_CATEGORY"
+  entityType  String        // เช่น "Product", "Category", "User", "JobOrder"
+  entityId    Int?          // ID ของ entity ที่เกี่ยวข้อง
+  oldValues   Json?         // ค่าเดิม (สำหรับ UPDATE)
+  newValues   Json?         // ค่าใหม่
+  details     String?       // รายละเอียดเพิ่มเติม
+  ipAddress   String?       // IP address ของผู้ใช้
+  userAgent   String?       // User agent ของ browser
+  branchId    Int
+  createdAt   DateTime      @default(now())
+  
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch      Branch        @relation(fields: [branchId], references: [id])
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([branchId])
+  @@index([createdAt])
+}
+
+model Bill {
+  id                Int           @id @default(autoincrement())
+  billNumber        String        @unique
+  jobOrderId        Int
+  customerId        Int
+  branchId          Int
+  status            BillStatus    @default(PENDING)
+  
+  // ข้อมูลการคำนวณ
+  subtotal          Float         // ยอดรวมสินค้า
+  laborCost         Float         @default(0) // ค่าแรงงาน
+  vatAmount         Float         // VAT 7%
+  grandTotal        Float         // ยอดรวมทั้งหมด
+  
+  // ข้อมูลการชำระเงิน
+  paymentMethod     PaymentMethod
+  paymentAmount     Float         // จำนวนเงินที่ชำระ
+  paymentStatus     PaymentStatus @default(PENDING)
+  paidAt            DateTime?     // เวลาที่ชำระเงิน
+  
+  // ข้อมูลเพิ่มเติม
+  notes             String?       // หมายเหตุ
+  createdBy         Int           // ผู้สร้างบิล
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  // ความสัมพันธ์
+  jobOrder          JobOrder      @relation(fields: [jobOrderId], references: [id])
+  customer          Customer      @relation(fields: [customerId], references: [id])
+  branch            Branch        @relation(fields: [branchId], references: [id])
+  createdByUser     User          @relation("BillCreatedBy", fields: [createdBy], references: [id])
+  billItems         BillItem[]
+  payments          Payment[]
+  
+  @@index([jobOrderId])
+  @@index([customerId])
+  @@index([branchId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([billNumber])
+}
+
+model BillItem {
+  id          Int      @id @default(autoincrement())
+  billId      Int
+  productId   Int
+  productName String   // เก็บชื่อสินค้าไว้ในบิล (ป้องกันการเปลี่ยนแปลงในอนาคต)
+  sku         String   // เก็บ SKU ไว้ในบิล
+  qty         Int
+  unitPrice   Float
+  totalPrice  Float    // qty * unitPrice
+  createdAt   DateTime @default(now())
+  
+  // ความสัมพันธ์
+  bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@index([billId])
+  @@index([productId])
+}
+
+model Customer {
+  id          Int      @id @default(autoincrement())
+  name        String
+  phoneNumber String   @unique
+  carType     String?  // ประเภทรถที่ใช้บ่อย
+  licensePlate String? @unique
+  notes       String?  // หมายเหตุเพิ่มเติม
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // ความสัมพันธ์
+  bills       Bill[]
+  jobOrders   JobOrder[]
+  
+  @@index([phoneNumber])
+  @@index([name])
+}
+
+model Payment {
+  id          Int           @id @default(autoincrement())
+  billId      Int
+  amount      Float
+  method      PaymentMethod
+  reference   String?       // เลขที่อ้างอิงการชำระเงิน
+  notes       String?       // หมายเหตุการชำระเงิน
+  createdBy   Int           // ผู้บันทึกการชำระเงิน
+  createdAt   DateTime      @default(now())
+  
+  // ความสัมพันธ์
+  bill        Bill          @relation(fields: [billId], references: [id], onDelete: Cascade)
+  createdByUser User        @relation("PaymentCreatedBy", fields: [createdBy], references: [id])
+  
+  @@index([billId])
+  @@index([method])
+  @@index([createdAt])
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  WORKER
+}
+
+enum TxType {
+  PURCHASE
+  SALE
+  ADJUST
+  RETURN
+  TRANSFER
+}
+
+enum POStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BillStatus {
+  PENDING
+  ISSUED
+  PAID
+  CANCELLED
+  OVERDUE
+}
+
+enum PaymentMethod {
+  CASH
+  PROMPTPAY
+  BANK_TRANSFER
+  CREDIT_CARD
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  FAILED
+  REFUNDED
+}
