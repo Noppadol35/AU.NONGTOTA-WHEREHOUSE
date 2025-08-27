@@ -25,13 +25,6 @@ docker-compose -f docker-compose.prod.yml ps
 docker-compose -f docker-compose.prod.yml logs -f
 ```
 
-## 🌐 **URLs หลัง Deploy**
-
-- **Frontend**: http://13.229.96.221
-- **Backend API**: http://13.229.96.221/api
-- **PgAdmin**: http://13.229.96.221/pgadmin
-- **Database**: localhost:5434
-
 ## 🔧 **การจัดการระบบ**
 
 ### **Restart Services**
