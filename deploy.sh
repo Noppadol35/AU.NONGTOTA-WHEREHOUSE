@@ -15,6 +15,16 @@ if ! command -v docker &> /dev/null; then
     rm get-docker.sh
 fi
 
+# Fix Docker permissions and restart Docker service
+echo "🔧 Fixing Docker permissions..."
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo chmod 666 /var/run/docker.sock
+
+# Reload user groups and start new shell session
+echo "🔄 Reloading user groups..."
+newgrp docker
+
 # Install Docker Compose if not installed
 if ! command -v docker-compose &> /dev/null; then
     echo "🐳 Installing Docker Compose..."
@@ -83,6 +93,15 @@ sudo nginx -t && sudo systemctl restart nginx
 
 # Start Docker services
 echo "🐳 Starting Docker services..."
+
+# Ensure Docker permissions are correct
+if ! docker ps &> /dev/null; then
+    echo "❌ Docker permission error. Trying to fix..."
+    sudo chmod 666 /var/run/docker.sock
+    sudo systemctl restart docker
+    sleep 5
+fi
+
 docker-compose -f docker-compose.prod.yml down
 docker-compose -f docker-compose.prod.yml up --build -d
 
