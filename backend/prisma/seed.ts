@@ -5,22 +5,26 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Create branches
-  const branch1 = await prisma.branch.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      name: 'สาขาหลัก',
-      address: '91/38 หมู่3 ถนน สุขุมวิท ตำบล บ้านสวน อำเภอ เมืองชลบุรี จังหวัดชลบุรี 20000',
-    },
-  });
+  // Ensure Branch id=1 exists
+  let branch1 = await prisma.branch.findUnique({ where: { id: 1 } });
+  if (!branch1) {
+    branch1 = await prisma.branch.create({
+      data: {
+        id: 1,
+        name: 'สาขาหลัก',
+        address: '91/38 หมู่3 ถนน สุขุมวิท ตำบล บ้านสวน อำเภอ เมืองชลบุรี จังหวัดชลบุรี 20000',
+      },
+    });
+    console.log('✅ Created default branch with id=1');
+  } else {
+    console.log('ℹ️ Default branch already exists with id=1');
+  }
 
 
 
-  // Create users
+  // Ensure an OWNER user exists
   const owner = await prisma.user.upsert({
-    where: { username: 'purmpoon' },
+    where: { username: 'owner' },
     update: {},
     create: {
       username: 'owner',
@@ -30,6 +34,7 @@ async function main() {
       branchId: branch1.id,
     },
   });
+  console.log('ℹ️ Seeded owner user:', owner.username);
 
 }
 

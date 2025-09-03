@@ -483,7 +483,7 @@ export default function CustomerHistoryReport() {
                             : job.status}
                         </span>
                         <span className="font-bold text-green-600">
-                          ฿{selectedCustomer.totalSpent.toLocaleString()}
+                          ฿{job.grandTotal?.toLocaleString()}
                         </span>
                       </div>
                       </div>
