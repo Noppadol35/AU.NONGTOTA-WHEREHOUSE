@@ -1,7 +1,11 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/(auth)/signup/page": "app/(auth)/signup/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(main)/stock-out/page": "app/(main)/stock-out/page.js",
+  "/(main)/job-orders/page": "app/(main)/job-orders/page.js",
+  "/(main)/dashboard/page": "app/(main)/dashboard/page.js",
+  "/(main)/billing/page": "app/(main)/billing/page.js",
+  "/(main)/reports/page": "app/(main)/reports/page.js",
+  "/(main)/cycle-count/page": "app/(main)/cycle-count/page.js",
+  "/(main)/stock-in/page": "app/(main)/stock-in/page.js",
   "/(main)/settings/page": "app/(main)/settings/page.js",
-  "/(main)/dashboard/page": "app/(main)/dashboard/page.js"
+  "/(main)/products/page": "app/(main)/products/page.js"
 }

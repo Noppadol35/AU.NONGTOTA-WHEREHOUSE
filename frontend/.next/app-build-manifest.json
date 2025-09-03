@@ -35,6 +35,41 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(main)/settings/page.js"
+    ],
+    "/(main)/products/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/products/page.js"
+    ],
+    "/(main)/stock-in/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/stock-in/page.js"
+    ],
+    "/(main)/stock-out/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/stock-out/page.js"
+    ],
+    "/(main)/job-orders/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/job-orders/page.js"
+    ],
+    "/(main)/billing/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/billing/page.js"
+    ],
+    "/(main)/reports/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/reports/page.js"
+    ],
+    "/(main)/cycle-count/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/cycle-count/page.js"
     ]
   }
 }

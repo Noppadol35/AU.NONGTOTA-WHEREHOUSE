@@ -8,15 +8,10 @@ interface StatisticsSummaryProps {
   };
 }
 
-export default function StatisticsSummary({ groupedJobs }: StatisticsSummaryProps) {
-  // คำนวณยอดรวมการเงิน
-  const calculateTotalAmount = (jobs: any[]) => {
-    return jobs.reduce((total, job) => total + (job.grandTotal || 0), 0);
-  };
+export default function StatisticsSummary({
+  groupedJobs,
+}: StatisticsSummaryProps) {
 
-  const totalPendingAmount = calculateTotalAmount(groupedJobs.PENDING);
-  const totalInProgressAmount = calculateTotalAmount(groupedJobs.IN_PROGRESS);
-  const totalCompletedAmount = calculateTotalAmount(groupedJobs.COMPLETED);
 
   return (
     <div className="space-y-6">
@@ -55,33 +50,6 @@ export default function StatisticsSummary({ groupedJobs }: StatisticsSummaryProp
           bgColor="bg-green-500"
           textColor="text-green-800"
         />
-      </div>
-
-      {/* Financial Summary */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          สรุปการเงิน
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600 mb-2">
-              ฿{totalPendingAmount.toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600">ยอดรวมงานรอดำเนินการ</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600 mb-2">
-              ฿{totalInProgressAmount.toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600">ยอดรวมงานที่กำลังทำ</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl font-bold text-green-600 mb-2">
-              ฿{totalCompletedAmount.toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600">ยอดรวมงานที่เสร็จแล้ว</div>
-          </div>
-        </div>
       </div>
     </div>
   );
