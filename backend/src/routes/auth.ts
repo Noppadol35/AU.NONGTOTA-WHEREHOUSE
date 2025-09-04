@@ -231,8 +231,9 @@ router.post("/login", async (req, res) => {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'lax' as const,
+      sameSite: 'none' as const, // Allow cross-site cookies
       maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : undefined, // 30 days if remember me
+      domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined, // Allow subdomains
     };
 
     res.cookie('sid', session.id, cookieOptions);
