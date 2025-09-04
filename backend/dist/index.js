@@ -30,7 +30,7 @@ app.use((0, cors_1.default)({
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
 // Serve static files
-app.use(express_1.default.static('src'));
+app.use(express_1.default.static('dist'));
 // Serve swagger.json
 app.get('/docs/swagger.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -38,11 +38,11 @@ app.get('/docs/swagger.json', (req, res) => {
 });
 // Serve Swagger UI HTML
 app.get('/docs', (req, res) => {
-    res.sendFile('swagger.html', { root: 'src' });
+    res.sendFile('swagger.html', { root: 'dist' });
 });
 // Serve Redoc UI HTML (alternative)
 app.get('/redoc', (req, res) => {
-    res.sendFile('redoc.html', { root: 'src' });
+    res.sendFile('redoc.html', { root: 'dist' });
 });
 // Routes
 app.use("/auth", auth_1.default);

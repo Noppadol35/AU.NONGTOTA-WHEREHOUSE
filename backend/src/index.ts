@@ -29,7 +29,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 // Serve static files
-app.use(express.static('src'));
+app.use(express.static('dist'));
 
 // Serve swagger.json
 app.get('/docs/swagger.json', (req, res) => {
@@ -39,12 +39,12 @@ app.get('/docs/swagger.json', (req, res) => {
 
 // Serve Swagger UI HTML
 app.get('/docs', (req, res) => {
-  res.sendFile('swagger.html', { root: 'src' });
+  res.sendFile('swagger.html', { root: 'dist' });
 });
 
 // Serve Redoc UI HTML (alternative)
 app.get('/redoc', (req, res) => {
-  res.sendFile('redoc.html', { root: 'src' });
+  res.sendFile('redoc.html', { root: 'dist' });
 });
 
 // Routes

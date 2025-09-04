@@ -8,6 +8,18 @@
   ],
   "routes": [
     {
+      "src": "/redoc",
+      "dest": "/dist/index.js"
+    },
+    {
+      "src": "/docs",
+      "dest": "/dist/index.js"
+    },
+    {
+      "src": "/docs/swagger.json",
+      "dest": "/dist/index.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "dist/index.js"
     }

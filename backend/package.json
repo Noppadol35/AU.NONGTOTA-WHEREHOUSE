@@ -6,12 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && tsc && cp src/*.html dist/",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "vercel-build": "prisma generate && tsc"
+    "vercel-build": "prisma generate && tsc && cp src/*.html dist/"
   },
   "keywords": [],
   "author": "",
