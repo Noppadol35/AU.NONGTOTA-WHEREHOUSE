@@ -80,7 +80,7 @@ export default function JobOrdersPage() {
   async function fetchConsumers() {
     try {
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${API_URL}/job-orders/consumers`, {
         credentials: "include",
       });
@@ -105,7 +105,7 @@ export default function JobOrdersPage() {
       );
 
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${API_URL}/job-orders?${params.toString()}`, {
         credentials: "include",
       });
@@ -170,7 +170,7 @@ export default function JobOrdersPage() {
   async function createJobOrder(data: JobOrderInput) {
     try {
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${API_URL}/job-orders`, {
         method: "POST",
         headers: {
@@ -204,7 +204,7 @@ export default function JobOrdersPage() {
       console.log("🔍 JobOrdersPage: Data keys:", Object.keys(data));
 
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${API_URL}/job-orders/${id}`, {
         method: "PUT",
         headers: {
@@ -246,7 +246,7 @@ export default function JobOrdersPage() {
 
     try {
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${API_URL}/job-orders/${id}`, {
         method: "DELETE",
         credentials: "include",
@@ -271,7 +271,7 @@ export default function JobOrdersPage() {
 
       // Fetch full detail from backend
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${API_URL}/job-orders/${job.id}`, {
         credentials: "include",
       });

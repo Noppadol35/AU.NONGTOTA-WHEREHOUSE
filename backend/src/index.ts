@@ -14,12 +14,12 @@ import reportsRoutes from "./routes/reports";
 // Session cleanup is handled automatically in validateSession method
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8000;
 
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] 
+    ? ['https://au-nongtota.com'] 
     : ['http://localhost:3000'],
   credentials: true, // Important for cookies
 }));
