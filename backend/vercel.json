@@ -2,26 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/dist/index.js",
+      "src": "dist/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/redoc",
-      "dest": "/backend/dist/index.js"
-    },
-    {
-      "src": "/docs",
-      "dest": "/backend/dist/index.js"
-    },
-    {
-      "src": "/docs/swagger.json",
-      "dest": "/backend/dist/index.js"
-    },
-    {
       "src": "/(.*)",
-      "dest": "backend/dist/index.js"
+      "dest": "dist/index.js"
     }
   ],
   "env": {
