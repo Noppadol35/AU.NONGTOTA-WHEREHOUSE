@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import swaggerUi from 'swagger-ui-express';
-import { specs } from './swagger';
+import swaggerSpec from '../swagger.json';
 import authRoutes from "./routes/auth";
 import productRoutes from "./routes/products";
 import categoryRoutes from "./routes/categories";
@@ -28,8 +28,24 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
-// Swagger UI
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
+// Serve static files
+app.use(express.static('src'));
+
+// Serve swagger.json
+app.get('/docs/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+// Serve Swagger UI HTML
+app.get('/docs', (req, res) => {
+  res.sendFile('swagger.html', { root: 'src' });
+});
+
+// Serve Redoc UI HTML (alternative)
+app.get('/redoc', (req, res) => {
+  res.sendFile('redoc.html', { root: 'src' });
+});
 
 // Routes
 app.use("/auth", authRoutes);

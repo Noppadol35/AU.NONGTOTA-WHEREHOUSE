@@ -1,0 +1,617 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AU.NONGTOTA API Documentation",
+    "version": "1.0.0",
+    "description": "API documentation for AU.NONGTOTA automotive service management system",
+    "contact": {
+      "name": "API Support",
+      "email": "nongtota.mechanic@gmail.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sessionId"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "fullName": { "type": "string" },
+          "role": { 
+            "type": "string",
+            "enum": ["OWNER", "MANAGER", "WORKER"]
+          },
+          "branchId": { "type": "integer" },
+          "branch": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" }
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "rememberMe": { "type": "boolean" }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "password", "fullName", "branchId"],
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "fullName": { "type": "string" },
+          "branchId": { "type": "integer" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "sku": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "categoryId": { "type": "integer" },
+          "costPrice": { "type": "number" },
+          "sellPrice": { "type": "number" },
+          "minStockLevel": { "type": "integer" },
+          "branchId": { "type": "integer" },
+          "stockQuantity": { "type": "integer" },
+          "version": { "type": "integer" },
+          "barcode": { "type": "string" },
+          "isDeleted": { "type": "boolean" },
+          "deletedAt": { "type": "string" },
+          "category": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" }
+            }
+          },
+          "branch": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" }
+            }
+          }
+        }
+      },
+      "CreateProductRequest": {
+        "type": "object",
+        "required": ["name", "costPrice", "sellPrice", "categoryId"],
+        "properties": {
+          "sku": { "type": "string" },
+          "barcode": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "categoryId": { "type": "integer" },
+          "costPrice": { "type": "number" },
+          "sellPrice": { "type": "number" },
+          "minStockLevel": { "type": "integer" }
+        }
+      },
+      "UpdateProductRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "categoryId": { "type": "integer" },
+          "costPrice": { "type": "number" },
+          "sellPrice": { "type": "number" },
+          "minStockLevel": { "type": "integer" },
+          "barcode": { "type": "string" }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "skuPrefix": { "type": "string" },
+          "productCount": { "type": "integer" }
+        }
+      },
+      "CreateCategoryRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "skuPrefix": { "type": "string" }
+        }
+      },
+      "UpdateCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "skuPrefix": { "type": "string" }
+        }
+      },
+      "JobOrder": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "jobNumber": { "type": "string" },
+          "customerName": { "type": "string" },
+          "phoneNumber": { "type": "string" },
+          "carType": { "type": "string" },
+          "licensePlate": { "type": "string" },
+          "issueDetail": { "type": "string" },
+          "jobDetail": { "type": "string" },
+          "status": { 
+            "type": "string",
+            "enum": ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+          },
+          "createdAt": { "type": "string" },
+          "branchId": { "type": "integer" },
+          "branch": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/JobOrderItem" }
+          }
+        }
+      },
+      "JobOrderItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "productId": { "type": "integer" },
+          "quantity": { "type": "integer" },
+          "unitPrice": { "type": "number" },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "sku": { "type": "string" }
+            }
+          }
+        }
+      },
+      "CreateJobOrderRequest": {
+        "type": "object",
+        "required": ["customerName", "phoneNumber", "carType", "licensePlate", "issueDetail", "jobDetail"],
+        "properties": {
+          "customerName": { "type": "string" },
+          "phoneNumber": { "type": "string" },
+          "carType": { "type": "string" },
+          "licensePlate": { "type": "string" },
+          "issueDetail": { "type": "string" },
+          "jobDetail": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": { "type": "integer" },
+                "quantity": { "type": "integer" },
+                "unitPrice": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "UpdateJobOrderRequest": {
+        "type": "object",
+        "properties": {
+          "customerName": { "type": "string" },
+          "phoneNumber": { "type": "string" },
+          "carType": { "type": "string" },
+          "licensePlate": { "type": "string" },
+          "issueDetail": { "type": "string" },
+          "jobDetail": { "type": "string" },
+          "status": { 
+            "type": "string",
+            "enum": ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": { "type": "integer" },
+                "quantity": { "type": "integer" },
+                "unitPrice": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "sessionAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "User login",
+        "description": "Authenticate user and create session",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "expiresAt": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing required fields" },
+          "401": { "description": "Invalid credentials" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "User logout",
+        "description": "Logout user and destroy session",
+        "tags": ["Authentication"],
+        "security": [{ "sessionAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No session found" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "Register new user",
+        "description": "Create a new user account",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing required fields or invalid data" },
+          "409": { "description": "Username already exists" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Get current user info",
+        "description": "Get information about the currently logged in user",
+        "tags": ["Authentication"],
+        "security": [{ "sessionAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "User information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No session found or invalid session" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "summary": "Get products list",
+        "description": "Retrieve a paginated list of products with optional filtering",
+        "tags": ["Products"],
+        "security": [{ "sessionAuth": [] }],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": { "type": "string" },
+            "description": "Search query for name, SKU, barcode, or description"
+          },
+          {
+            "in": "query",
+            "name": "categoryId",
+            "schema": { "type": "integer" },
+            "description": "Filter by category ID"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": { "type": "integer", "default": 1 },
+            "description": "Page number"
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": { "type": "integer", "default": 20 },
+            "description": "Number of items per page"
+          },
+          {
+            "in": "query",
+            "name": "lowStock",
+            "schema": { "type": "boolean" },
+            "description": "Filter products with low stock"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Product" }
+                    },
+                    "total": { "type": "integer" },
+                    "page": { "type": "integer" },
+                    "pageSize": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Internal server error" }
+        }
+      },
+      "post": {
+        "summary": "Create new product",
+        "description": "Create a new product with auto-generated SKU",
+        "tags": ["Products"],
+        "security": [{ "sessionAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateProductRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "product": { "$ref": "#/components/schemas/Product" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request data" },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/products/{id}": {
+      "put": {
+        "summary": "Update product",
+        "description": "Update an existing product",
+        "tags": ["Products"],
+        "security": [{ "sessionAuth": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Product ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProductRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "product": { "$ref": "#/components/schemas/Product" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request data" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Product not found" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "summary": "Get categories list",
+        "description": "Retrieve all categories with product count",
+        "tags": ["Categories"],
+        "security": [{ "sessionAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Categories retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Category" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Internal server error" }
+        }
+      },
+      "post": {
+        "summary": "Create new category",
+        "description": "Create a new product category",
+        "tags": ["Categories"],
+        "security": [{ "sessionAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateCategoryRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "item": { "$ref": "#/components/schemas/Category" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing required fields" },
+          "401": { "description": "Unauthorized" },
+          "409": { "description": "Category name already exists" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/job-orders": {
+      "get": {
+        "summary": "Get job orders list",
+        "description": "Retrieve job orders with optional filtering",
+        "tags": ["Job Orders"],
+        "security": [{ "sessionAuth": [] }],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customer",
+            "schema": { "type": "string" },
+            "description": "Filter by customer name"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": { "type": "string" },
+            "description": "Filter by job order status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job orders retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/JobOrder" }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    }
+  }
+}

@@ -10,7 +10,7 @@ const options = {
                 "API documentation for AU.NONGTOTA automotive service management system",
             contact: {
                 name: "API Support",
-                email: "support@aunongtota.com",
+                email: "nongtota.mechanic@gmail.com",
             },
         },
         servers: [
@@ -34,7 +34,7 @@ const options = {
             },
         ],
     },
-    apis: ["./src/routes/*.ts", "./src/types/*.ts"], // Path to the API docs
+    apis: ["./src/routes/*.ts", "./src/types/*.ts", "./src/swagger-schemas.ts"], // Path to the API docs
 };
 
 export const specs = swaggerJsdoc(options);

@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
-const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
-const swagger_1 = require("./swagger");
+const swagger_json_1 = __importDefault(require("../swagger.json"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const products_1 = __importDefault(require("./routes/products"));
 const categories_1 = __importDefault(require("./routes/categories"));
@@ -30,8 +29,21 @@ app.use((0, cors_1.default)({
 }));
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
-// Swagger UI
-app.use('/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.specs));
+// Serve static files
+app.use(express_1.default.static('src'));
+// Serve swagger.json
+app.get('/docs/swagger.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swagger_json_1.default);
+});
+// Serve Swagger UI HTML
+app.get('/docs', (req, res) => {
+    res.sendFile('swagger.html', { root: 'src' });
+});
+// Serve Redoc UI HTML (alternative)
+app.get('/redoc', (req, res) => {
+    res.sendFile('redoc.html', { root: 'src' });
+});
 // Routes
 app.use("/auth", auth_1.default);
 app.use("/products", products_1.default);
