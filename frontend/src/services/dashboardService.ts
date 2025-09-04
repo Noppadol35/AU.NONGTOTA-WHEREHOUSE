@@ -44,6 +44,14 @@ export interface DashboardData {
 }
 
 class DashboardService {
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('authToken');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
+  }
+
   async getDashboardData(): Promise<DashboardData> {
     try {
       const [statsResponse, activitiesResponse, lowStockResponse, topProductsResponse] = await Promise.all([
@@ -67,6 +75,7 @@ class DashboardService {
 
   private async fetchStats(): Promise<DashboardStats> {
     const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+      headers: this.getAuthHeaders(),
       credentials: 'include'
     });
 
@@ -79,6 +88,7 @@ class DashboardService {
 
   private async fetchRecentActivities(): Promise<RecentActivity[]> {
     const response = await fetch(`${API_BASE_URL}/dashboard/recent-activities`, {
+      headers: this.getAuthHeaders(),
       credentials: 'include'
     });
 
@@ -91,6 +101,7 @@ class DashboardService {
 
   private async fetchLowStockProducts() {
     const response = await fetch(`${API_BASE_URL}/products?lowStock=true`, {
+      headers: this.getAuthHeaders(),
       credentials: 'include'
     });
 
@@ -98,13 +109,12 @@ class DashboardService {
       throw new Error('Failed to fetch low stock products');
     }
 
-    const data = await response.json();
-    // Ensure we return the items array from the response
-    return data.items || [];
+    return response.json();
   }
 
   private async fetchTopProducts() {
     const response = await fetch(`${API_BASE_URL}/dashboard/top-products`, {
+      headers: this.getAuthHeaders(),
       credentials: 'include'
     });
 

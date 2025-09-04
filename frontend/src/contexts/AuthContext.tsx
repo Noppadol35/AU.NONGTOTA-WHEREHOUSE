@@ -18,6 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  token: string | null;
   login: (username: string, password: string, rememberMe: boolean) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -35,24 +36,38 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const checkAuth = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
-        credentials: 'include',
-      });
+      const storedToken = localStorage.getItem('authToken');
+      if (storedToken) {
+        setToken(storedToken);
+        // Try to validate token with backend
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${storedToken}`,
+          },
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        } else {
+          // Token invalid, clear it
+          localStorage.removeItem('authToken');
+          setToken(null);
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
+      setToken(null);
     } finally {
       setLoading(false);
     }
@@ -76,6 +91,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const data = await response.json();
     setUser(data.user);
     
+    // Store JWT token
+    if (data.token) {
+      setToken(data.token);
+      localStorage.setItem('authToken', data.token);
+    }
+    
     // Redirect to dashboard after successful login
     router.push('/dashboard');
   };
@@ -90,6 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Logout failed:', error);
     } finally {
       setUser(null);
+      setToken(null);
+      localStorage.removeItem('authToken');
       router.push('/login');
     }
   };
@@ -101,6 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value: AuthContextType = {
     user,
     loading,
+    token,
     login,
     logout,
     checkAuth,
