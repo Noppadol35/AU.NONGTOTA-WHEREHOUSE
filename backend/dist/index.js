@@ -18,11 +18,11 @@ const auditLogs_1 = __importDefault(require("./routes/auditLogs"));
 const reports_1 = __importDefault(require("./routes/reports"));
 // Session cleanup is handled automatically in validateSession method
 const app = (0, express_1.default)();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8000;
 // Middleware
 app.use((0, cors_1.default)({
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://yourdomain.com']
+        ? ['https://au-nongtota.com']
         : ['http://localhost:3000'],
     credentials: true, // Important for cookies
 }));

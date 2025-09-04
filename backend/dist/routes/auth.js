@@ -17,6 +17,15 @@ router.post("/register", async (req, res) => {
         if (!username || !password || !fullName || !branchId) {
             return res.status(400).json({ message: "All fields are required" });
         }
+        // Validate branch existence first to avoid FK error
+        const targetBranchId = Number(branchId);
+        if (!Number.isInteger(targetBranchId)) {
+            return res.status(400).json({ message: "Invalid branchId" });
+        }
+        const branch = await prisma.branch.findUnique({ where: { id: targetBranchId } });
+        if (!branch) {
+            return res.status(400).json({ message: "Branch not found" });
+        }
         // Check if username already exists
         const existingUser = await prisma.user.findUnique({
             where: { username },
@@ -32,7 +41,7 @@ router.post("/register", async (req, res) => {
                 username,
                 password: hashedPassword,
                 fullName,
-                branchId: parseInt(branchId),
+                branchId: targetBranchId,
                 role: "WORKER", // Default role
             },
             select: {
@@ -47,7 +56,16 @@ router.post("/register", async (req, res) => {
     }
     catch (error) {
         console.error("Registration error:", error);
-        res.status(500).json({ message: "Registration failed" });
+        // Prisma known errors handling
+        if (error.code === 'P2002') {
+            // Unique constraint failed
+            return res.status(409).json({ message: "Username already exists" });
+        }
+        if (error.code === 'P2003') {
+            // FK constraint failed
+            return res.status(400).json({ message: "Invalid reference data (branchId)" });
+        }
+        return res.status(500).json({ message: "Registration failed" });
     }
 });
 // POST /auth/login
