@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import { SessionManager } from "../lib/session";
 import { Role } from "@prisma/client";
 import { CustomerService } from "../services/customerService";
+import { requireRole } from "../middleware/session";
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ const sessionRequired = async (req: express.Request, res: express.Response, next
 };
 
 // GET /reports/low-stock - สินค้าใกล้หมด
-router.get("/low-stock", sessionRequired, async (req, res) => {
+router.get("/low-stock", sessionRequired, requireRole(["OWNER"]), async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       where: {
@@ -97,7 +98,7 @@ router.get("/low-stock", sessionRequired, async (req, res) => {
 });
 
 // GET /reports/inventory-value - มูลค่าสินค้าคงเหลือ
-router.get("/inventory-value", sessionRequired, async (req, res) => {
+router.get("/inventory-value", sessionRequired, requireRole(["OWNER"]), async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       where: {
@@ -152,7 +153,7 @@ router.get("/inventory-value", sessionRequired, async (req, res) => {
 });
 
 // GET /reports/top-moving - สินค้าขายดี
-router.get("/top-moving", sessionRequired, async (req, res) => {
+router.get("/top-moving", sessionRequired, requireRole(["OWNER"]), async (req, res) => {
   try {
     const { timeRange = "month" } = req.query;
 
@@ -251,7 +252,7 @@ router.get("/top-moving", sessionRequired, async (req, res) => {
 });
 
 // GET /reports/customer-history - ประวัติลูกค้า
-router.get("/customer-history", sessionRequired, async (req, res) => {
+router.get("/customer-history", sessionRequired, requireRole(["OWNER"]), async (req, res) => {
   try {
     const { filter = "all" } = req.query;
 
@@ -292,7 +293,7 @@ router.get("/customer-history", sessionRequired, async (req, res) => {
 });
 
 // GET /reports/summary - สรุปข้อมูลทั้งหมด
-router.get("/summary", sessionRequired, async (req, res) => {
+router.get("/summary", sessionRequired, requireRole(["OWNER"]), async (req, res) => {
   try {
     // Low stock count
     const lowStockCount = await prisma.product.count({
@@ -403,7 +404,7 @@ router.get("/summary", sessionRequired, async (req, res) => {
 });
 
 // POST /reports/fix-customers - แก้ไขข้อมูลลูกค้าจาก JobOrder
-router.post("/fix-customers", sessionRequired, async (req, res) => {
+router.post("/fix-customers", sessionRequired, requireRole(["OWNER"]), async (req, res) => {
   try {
     const result = await CustomerService.fixJobOrderCustomers();
     res.json({
@@ -420,7 +421,7 @@ router.post("/fix-customers", sessionRequired, async (req, res) => {
 });
 
 // GET /reports/customer-jobs/:customerId - ดึงรายละเอียดงานของลูกค้า
-router.get("/customer-jobs/:customerId", sessionRequired, async (req, res) => {
+router.get("/customer-jobs/:customerId", sessionRequired, requireRole(["OWNER"]), async (req, res) => {
   try {
     const customerId = parseInt(req.params.customerId || '0');
     if (isNaN(customerId)) {

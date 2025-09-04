@@ -82,6 +82,15 @@ export default function Sidebar({
   const getNavigationItems = () => {
     const baseItems = [...items];
     
+    // Filter Management children to hide Reports for non-OWNER users
+    const managementItem = baseItems.find(item => item.label === "Management");
+    if (managementItem && managementItem.children) {
+      if (user?.role !== "OWNER") {
+        // Remove Reports from Management menu for non-OWNER users
+        managementItem.children = managementItem.children.filter(child => child.label !== "Reports");
+      }
+    }
+    
     // Add Settings menu only for OWNER role
     if (user?.role === "OWNER") {
       baseItems.push({

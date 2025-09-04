@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
@@ -12,7 +13,8 @@ import {
   FileText,
   AlertTriangle,
   DollarSign,
-  Activity
+  Activity,
+  Shield
 } from 'lucide-react'
 import { reportsService, ReportsSummary } from '@/services/reportsService'
 
@@ -28,6 +30,46 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { user } = useAuth()
+
+  // Redirect if not OWNER
+  useEffect(() => {
+    if (user && user.role !== "OWNER") {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
+
+  // Show loading if user not loaded yet
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+      </div>
+    );
+  }
+
+  // Show access denied if not OWNER
+  if (user.role !== "OWNER") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Access Denied
+          </h1>
+          <p className="text-gray-600 mb-4">
+            You don't have permission to access this page.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const fetchSummary = async () => {
