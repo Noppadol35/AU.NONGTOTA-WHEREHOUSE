@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './swagger';
 import authRoutes from "./routes/auth";
 import productRoutes from "./routes/products";
 import categoryRoutes from "./routes/categories";
@@ -26,6 +28,9 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
+// Swagger UI
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 // Routes
 app.use("/auth", authRoutes);
 app.use("/products", productRoutes);
@@ -48,4 +53,5 @@ app.get("/health", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/docs`);
 });

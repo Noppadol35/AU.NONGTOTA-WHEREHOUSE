@@ -7,6 +7,163 @@ import { CustomerService } from "../services/customerService";
 const router = express.Router();
 const prisma = new PrismaClient();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     JobOrder:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         jobNumber:
+ *           type: string
+ *         customerName:
+ *           type: string
+ *         phoneNumber:
+ *           type: string
+ *         carType:
+ *           type: string
+ *         licensePlate:
+ *           type: string
+ *         issueDetail:
+ *           type: string
+ *         jobDetail:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [OPEN, IN_PROGRESS, COMPLETED, CANCELLED]
+ *         createdAt:
+ *           type: string
+ *         branchId:
+ *           type: integer
+ *         branch:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ *         items:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/JobOrderItem'
+ *     JobOrderItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         productId:
+ *           type: integer
+ *         quantity:
+ *           type: integer
+ *         unitPrice:
+ *           type: number
+ *         product:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *             name:
+ *               type: string
+ *             sku:
+ *               type: string
+ *     CreateJobOrderRequest:
+ *       type: object
+ *       required:
+ *         - customerName
+ *         - phoneNumber
+ *         - carType
+ *         - licensePlate
+ *         - issueDetail
+ *         - jobDetail
+ *       properties:
+ *         customerName:
+ *           type: string
+ *         phoneNumber:
+ *           type: string
+ *         carType:
+ *           type: string
+ *         licensePlate:
+ *           type: string
+ *         issueDetail:
+ *           type: string
+ *         jobDetail:
+ *           type: string
+ *         items:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               productId:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *               unitPrice:
+ *                 type: number
+ *     UpdateJobOrderRequest:
+ *       type: object
+ *       properties:
+ *         customerName:
+ *           type: string
+ *         phoneNumber:
+ *           type: string
+ *         carType:
+ *           type: string
+ *         licensePlate:
+ *           type: string
+ *         issueDetail:
+ *           type: string
+ *         jobDetail:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [OPEN, IN_PROGRESS, COMPLETED, CANCELLED]
+ *         items:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               productId:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *               unitPrice:
+ *                 type: number
+ */
+
+/**
+ * @swagger
+ * /job-orders:
+ *   get:
+ *     summary: Get job orders list
+ *     description: Retrieve job orders with optional filtering
+ *     tags: [Job Orders]
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: customer
+ *         schema:
+ *           type: string
+ *         description: Filter by customer name
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by job order status
+ *     responses:
+ *       200:
+ *         description: Job orders retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/JobOrder'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 // GET /job-orders?customer=&status=
 router.get("/", sessionRequired, async (req, res) => {
   try {
