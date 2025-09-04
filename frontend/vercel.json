@@ -7,6 +7,6 @@
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://api.au-nongtota.com/"
+    "NEXT_PUBLIC_API_URL": "https://backend-aftkk7jd6-noppadol-35.vercel.app"
   }
 }
