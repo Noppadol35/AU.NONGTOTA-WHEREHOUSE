@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const prisma_1 = require("../lib/prisma");
 const session_1 = require("../lib/session");
 const customerService_1 = require("../services/customerService");
+const session_2 = require("../middleware/session");
 const router = express_1.default.Router();
 // Session middleware for reports
 const sessionRequired = async (req, res, next) => {
@@ -36,7 +37,7 @@ const sessionRequired = async (req, res, next) => {
     }
 };
 // GET /reports/low-stock - สินค้าใกล้หมด
-router.get("/low-stock", sessionRequired, async (req, res) => {
+router.get("/low-stock", sessionRequired, (0, session_2.requireRole)(["OWNER"]), async (req, res) => {
     try {
         const products = await prisma_1.prisma.product.findMany({
             where: {
@@ -87,7 +88,7 @@ router.get("/low-stock", sessionRequired, async (req, res) => {
     }
 });
 // GET /reports/inventory-value - มูลค่าสินค้าคงเหลือ
-router.get("/inventory-value", sessionRequired, async (req, res) => {
+router.get("/inventory-value", sessionRequired, (0, session_2.requireRole)(["OWNER"]), async (req, res) => {
     try {
         const products = await prisma_1.prisma.product.findMany({
             where: {
@@ -136,7 +137,7 @@ router.get("/inventory-value", sessionRequired, async (req, res) => {
     }
 });
 // GET /reports/top-moving - สินค้าขายดี
-router.get("/top-moving", sessionRequired, async (req, res) => {
+router.get("/top-moving", sessionRequired, (0, session_2.requireRole)(["OWNER"]), async (req, res) => {
     try {
         const { timeRange = "month" } = req.query;
         let dateFilter;
@@ -225,7 +226,7 @@ router.get("/top-moving", sessionRequired, async (req, res) => {
     }
 });
 // GET /reports/customer-history - ประวัติลูกค้า
-router.get("/customer-history", sessionRequired, async (req, res) => {
+router.get("/customer-history", sessionRequired, (0, session_2.requireRole)(["OWNER"]), async (req, res) => {
     try {
         const { filter = "all" } = req.query;
         // ใช้ CustomerService เพื่อดึงข้อมูลลูกค้าพร้อมสถิติ
@@ -263,7 +264,7 @@ router.get("/customer-history", sessionRequired, async (req, res) => {
     }
 });
 // GET /reports/summary - สรุปข้อมูลทั้งหมด
-router.get("/summary", sessionRequired, async (req, res) => {
+router.get("/summary", sessionRequired, (0, session_2.requireRole)(["OWNER"]), async (req, res) => {
     try {
         // Low stock count
         const lowStockCount = await prisma_1.prisma.product.count({
@@ -362,7 +363,7 @@ router.get("/summary", sessionRequired, async (req, res) => {
     }
 });
 // POST /reports/fix-customers - แก้ไขข้อมูลลูกค้าจาก JobOrder
-router.post("/fix-customers", sessionRequired, async (req, res) => {
+router.post("/fix-customers", sessionRequired, (0, session_2.requireRole)(["OWNER"]), async (req, res) => {
     try {
         const result = await customerService_1.CustomerService.fixJobOrderCustomers();
         res.json({
@@ -379,7 +380,7 @@ router.post("/fix-customers", sessionRequired, async (req, res) => {
     }
 });
 // GET /reports/customer-jobs/:customerId - ดึงรายละเอียดงานของลูกค้า
-router.get("/customer-jobs/:customerId", sessionRequired, async (req, res) => {
+router.get("/customer-jobs/:customerId", sessionRequired, (0, session_2.requireRole)(["OWNER"]), async (req, res) => {
     try {
         const customerId = parseInt(req.params.customerId || '0');
         if (isNaN(customerId)) {

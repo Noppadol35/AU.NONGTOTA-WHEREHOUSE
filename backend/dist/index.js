@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 8000;
 // Middleware
 app.use((0, cors_1.default)({
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://au-nongtota.com']
+        ? true // Allow all origins in production
         : ['http://localhost:3000'],
     credentials: true, // Important for cookies
 }));
