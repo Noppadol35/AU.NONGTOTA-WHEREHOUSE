@@ -1,1 +1,20 @@
-{}
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(auth)/signup/page": "app/(auth)/signup/page.js",
+  "/page": "app/page.js",
+  "/(main)/backup-restore/page": "app/(main)/backup-restore/page.js",
+  "/(main)/cycle-count/page": "app/(main)/cycle-count/page.js",
+  "/(main)/billing/page": "app/(main)/billing/page.js",
+  "/(main)/job-orders/page": "app/(main)/job-orders/page.js",
+  "/(main)/products/[id]/page": "app/(main)/products/[id]/page.js",
+  "/(main)/products/page": "app/(main)/products/page.js",
+  "/(main)/dashboard/page": "app/(main)/dashboard/page.js",
+  "/(main)/stock-in/page": "app/(main)/stock-in/page.js",
+  "/(main)/purchase-orders/page": "app/(main)/purchase-orders/page.js",
+  "/(main)/settings/page": "app/(main)/settings/page.js",
+  "/(main)/reports/page": "app/(main)/reports/page.js",
+  "/(main)/stock-out/page": "app/(main)/stock-out/page.js",
+  "/(main)/users-audit/page": "app/(main)/users-audit/page.js"
+}
