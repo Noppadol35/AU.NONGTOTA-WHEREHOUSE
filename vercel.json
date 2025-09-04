@@ -1,21 +1,20 @@
+
 {
   "version": 2,
   "builds": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "frontend/.next"
-      }
+      "src": "backend/dist/index.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "frontend/$1"
+      "dest": "backend/dist/index.js"
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://au-nongtota-wherehouse-e3c4dkaxu-noppadol-35.vercel.app"
-  }
+    "NODE_ENV": "production"
+  },
+  "buildCommand": "cd backend && npm run vercel-build"
 }
