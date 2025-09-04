@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_1 = require("./swagger");
 const auth_1 = __importDefault(require("./routes/auth"));
 const products_1 = __importDefault(require("./routes/products"));
 const categories_1 = __importDefault(require("./routes/categories"));
@@ -28,6 +30,8 @@ app.use((0, cors_1.default)({
 }));
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
+// Swagger UI
+app.use('/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.specs));
 // Routes
 app.use("/auth", auth_1.default);
 app.use("/products", products_1.default);
@@ -47,5 +51,6 @@ app.get("/health", (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/docs`);
 });
 //# sourceMappingURL=index.js.map

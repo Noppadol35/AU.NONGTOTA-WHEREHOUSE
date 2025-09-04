@@ -9,6 +9,99 @@ const session_1 = require("../middleware/session");
 const audit_1 = require("../lib/audit");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         sku:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         categoryId:
+ *           type: integer
+ *         costPrice:
+ *           type: number
+ *         sellPrice:
+ *           type: number
+ *         minStockLevel:
+ *           type: integer
+ *         branchId:
+ *           type: integer
+ *         stockQuantity:
+ *           type: integer
+ *         version:
+ *           type: integer
+ *         barcode:
+ *           type: string
+ *         isDeleted:
+ *           type: boolean
+ *         deletedAt:
+ *           type: string
+ *         category:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *             name:
+ *               type: string
+ *         branch:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *             name:
+ *               type: string
+ *     CreateProductRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *         - costPrice
+ *         - sellPrice
+ *         - categoryId
+ *       properties:
+ *         sku:
+ *           type: string
+ *         barcode:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         categoryId:
+ *           type: integer
+ *         costPrice:
+ *           type: number
+ *         sellPrice:
+ *           type: number
+ *         minStockLevel:
+ *           type: integer
+ *         barcode:
+ *           type: string
+ *     UpdateProductRequest:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         categoryId:
+ *           type: integer
+ *         costPrice:
+ *           type: number
+ *         sellPrice:
+ *           type: number
+ *         minStockLevel:
+ *           type: integer
+ *         barcode:
+ *           type: string
+ */
 // Utility: compute next SKU for a prefix (max 6 chars) with 4-digit suffix
 async function computeNextSku(prefixRaw) {
     const prefix = prefixRaw.toUpperCase();
@@ -30,6 +123,66 @@ async function computeNextSku(prefixRaw) {
     const next = Math.min(maxNum + 1, 9999);
     return `${prefix}${String(next).padStart(4, "0")}`;
 }
+/**
+ * @swagger
+ * /products:
+ *   get:
+ *     summary: Get products list
+ *     description: Retrieve a paginated list of products with optional filtering
+ *     tags: [Products]
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search query for name, SKU, barcode, or description
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: integer
+ *         description: Filter by category ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of items per page
+ *       - in: query
+ *         name: lowStock
+ *         schema:
+ *           type: boolean
+ *         description: Filter products with low stock
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pageSize:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 // GET /products?q=&categoryId=&page=&pageSize=
 router.get("/", session_1.sessionRequired, async (req, res) => {
     try {
@@ -86,6 +239,40 @@ router.get("/", session_1.sessionRequired, async (req, res) => {
         return res.status(500).json({ message: "failed to fetch products" });
     }
 });
+/**
+ * @swagger
+ * /products:
+ *   post:
+ *     summary: Create new product
+ *     description: Create a new product with auto-generated SKU
+ *     tags: [Products]
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateProductRequest'
+ *     responses:
+ *       201:
+ *         description: Product created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 product:
+ *                   $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 // POST /products
 router.post("/", session_1.sessionRequired, async (req, res) => {
     try {
@@ -165,6 +352,49 @@ router.post("/", session_1.sessionRequired, async (req, res) => {
         return res.status(500).json({ message: "failed to create product" });
     }
 });
+/**
+ * @swagger
+ * /products/{id}:
+ *   put:
+ *     summary: Update product
+ *     description: Update an existing product
+ *     tags: [Products]
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Product ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateProductRequest'
+ *     responses:
+ *       200:
+ *         description: Product updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 product:
+ *                   $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Product not found
+ *       500:
+ *         description: Internal server error
+ */
 // PUT /products/:id
 router.put("/:id", session_1.sessionRequired, async (req, res) => {
     try {

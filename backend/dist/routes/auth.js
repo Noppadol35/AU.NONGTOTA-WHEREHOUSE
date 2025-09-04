@@ -10,6 +10,92 @@ const session_1 = require("../lib/session");
 const audit_1 = require("../lib/audit");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         username:
+ *           type: string
+ *         fullName:
+ *           type: string
+ *         role:
+ *           type: string
+ *           enum: [OWNER, MANAGER, WORKER]
+ *         branchId:
+ *           type: integer
+ *         branch:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *             name:
+ *               type: string
+ *     LoginRequest:
+ *       type: object
+ *       required:
+ *         - username
+ *         - password
+ *       properties:
+ *         username:
+ *           type: string
+ *         password:
+ *           type: string
+ *         rememberMe:
+ *           type: boolean
+ *     RegisterRequest:
+ *       type: object
+ *       required:
+ *         - username
+ *         - password
+ *         - fullName
+ *         - branchId
+ *       properties:
+ *         username:
+ *           type: string
+ *         password:
+ *           type: string
+ *         fullName:
+ *           type: string
+ *         branchId:
+ *           type: integer
+ */
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register new user
+ *     description: Create a new user account
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Missing required fields or invalid data
+ *       409:
+ *         description: Username already exists
+ *       500:
+ *         description: Internal server error
+ */
 // POST /auth/register
 router.post("/register", async (req, res) => {
     try {
@@ -68,6 +154,45 @@ router.post("/register", async (req, res) => {
         return res.status(500).json({ message: "Registration failed" });
     }
 });
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: User login
+ *     description: Authenticate user and create session
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 session:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     expiresAt:
+ *                       type: string
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Internal server error
+ */
 // POST /auth/login
 router.post("/login", async (req, res) => {
     try {
@@ -131,6 +256,30 @@ router.post("/login", async (req, res) => {
         res.status(500).json({ message: "Login failed" });
     }
 });
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user info
+ *     description: Get information about the currently logged in user
+ *     tags: [Authentication]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: User information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: No session found or invalid session
+ *       500:
+ *         description: Internal server error
+ */
 // GET /auth/me
 router.get("/me", async (req, res) => {
     try {
@@ -158,6 +307,30 @@ router.get("/me", async (req, res) => {
         res.status(500).json({ message: "Failed to get user info" });
     }
 });
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: User logout
+ *     description: Logout user and destroy session
+ *     tags: [Authentication]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: No session found
+ *       500:
+ *         description: Internal server error
+ */
 // POST /auth/logout
 router.post("/logout", async (req, res) => {
     try {
