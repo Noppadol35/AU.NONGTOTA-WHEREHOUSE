@@ -1,5 +1,6 @@
 import express from "express";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 import { SessionManager } from "../lib/session";
 import { AuditService } from "../lib/audit";
@@ -225,7 +226,20 @@ router.post("/login", async (req, res) => {
     }
 
     // Create session
-    const session = await SessionManager.createSession(user.id, rememberMe || false);
+    const session = await SessionManager.createSession(user.id, rememberMe);
+
+    // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        username: user.username, 
+        role: user.role,
+        sessionId: session.id 
+      }, 
+      jwtSecret, 
+      { expiresIn: rememberMe ? '30d' : '24h' }
+    );
 
     // Set cookie
     const cookieOptions = {
@@ -233,7 +247,7 @@ router.post("/login", async (req, res) => {
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
       sameSite: 'none' as const, // Allow cross-site cookies
       maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : undefined, // 30 days if remember me
-      domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined, // Allow subdomains
+      // Remove domain setting to let browser handle it automatically
     };
 
     res.cookie('sid', session.id, cookieOptions);
@@ -254,7 +268,8 @@ router.post("/login", async (req, res) => {
       session: {
         id: session.id,
         expiresAt: session.expiresAt,
-      }
+      },
+      token: token // Include JWT token
     });
 
     // Log successful login
