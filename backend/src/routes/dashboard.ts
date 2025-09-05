@@ -231,6 +231,34 @@ router.get("/top-products", sessionRequired, async (req, res) => {
   }
 });
 
+// GET /dashboard/low-stock-products
+router.get("/low-stock-products", sessionRequired, async (req, res) => {
+  try {
+    const lowStockProducts = await prisma.product.findMany({
+      where: {
+        branchId: req.user?.branchId || 1,
+        stockQuantity: {
+          lte: prisma.product.fields.minStockLevel
+        }
+      },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        stockQuantity: true,
+        minStockLevel: true
+      },
+      orderBy: { stockQuantity: 'asc' },
+      take: 20
+    });
+
+    res.json(lowStockProducts);
+  } catch (error) {
+    console.error("Error fetching low stock products:", error);
+    res.status(500).json({ message: "Failed to fetch low stock products" });
+  }
+});
+
 // Helper function to calculate time ago
 function getTimeAgo(date: Date): string {
   const now = new Date();

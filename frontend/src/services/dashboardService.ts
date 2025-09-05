@@ -100,7 +100,7 @@ class DashboardService {
   }
 
   private async fetchLowStockProducts() {
-    const response = await fetch(`${API_BASE_URL}/products?lowStock=true`, {
+    const response = await fetch(`${API_BASE_URL}/dashboard/low-stock-products`, {
       headers: this.getAuthHeaders(),
       credentials: 'include'
     });
