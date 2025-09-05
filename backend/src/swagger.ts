@@ -15,7 +15,7 @@ const options = {
         },
         servers: [
             {
-                url: "http://localhost:8000",
+                url: process.env.NEXT_PUBLIC_API_URL,
                 description: "Development server",
             },
         ],

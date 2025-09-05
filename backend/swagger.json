@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8000",
+      "url": "https://api.au-nongtota.com",
       "description": "Development server"
     }
   ],
