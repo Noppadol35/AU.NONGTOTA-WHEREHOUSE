@@ -228,26 +228,27 @@ router.post("/login", async (req, res) => {
     // Create session
     const session = await SessionManager.createSession(user.id, rememberMe);
 
-    // Generate JWT token
+    // Generate JWT token with proper expiration
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
       { 
         userId: user.id, 
         username: user.username, 
         role: user.role,
-        sessionId: session.id 
+        sessionId: session.id,
+        rememberMe: rememberMe
       }, 
       jwtSecret, 
-      { expiresIn: rememberMe ? '30d' : '24h' }
+      { expiresIn: rememberMe ? '30d' : '4h' } // 4 hours default, 30 days if remember me
     );
 
-    // Set cookie
+    // Set cookie with proper settings for production
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'none' as const, // Allow cross-site cookies
-      maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : undefined, // 30 days if remember me
-      // Remove domain setting to let browser handle it automatically
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // Cross-site for production
+      maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 4 * 60 * 60 * 1000, // 30 days or 4 hours
+      path: '/', // Available for all paths
     };
 
     res.cookie('sid', session.id, cookieOptions);

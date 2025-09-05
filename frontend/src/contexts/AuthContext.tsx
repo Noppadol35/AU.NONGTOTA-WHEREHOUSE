@@ -45,13 +45,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedToken = localStorage.getItem('authToken');
       if (storedToken) {
         setToken(storedToken);
-        // Try to validate token with backend
+        // Try to validate token with backend using JWT
         const API_URL =
             process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: {
             'Authorization': `Bearer ${storedToken}`,
           },
+          credentials: 'include', // Include cookies for fallback
         });
 
         if (response.ok) {

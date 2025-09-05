@@ -26,13 +26,33 @@ export const sessionRequired = async (req: Request, res: Response, next: NextFun
       const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
       const decoded = jwt.verify(token, jwtSecret) as any;
       
-      req.user = {
-        id: decoded.userId,
-        username: decoded.username,
-        fullName: null,
-        role: decoded.role as Role,
-        branchId: 1, // Default branch
-      };
+      // Get user info from database for JWT token
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          include: { branch: true },
+        });
+        
+        if (!user) {
+          return res.status(401).json({ message: 'User not found' });
+        }
+        
+        req.user = {
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role as Role,
+          branchId: user.branchId,
+        };
+      } catch (error) {
+        console.error('Database error in JWT validation:', error);
+        return res.status(500).json({ message: 'Authentication failed' });
+      } finally {
+        await prisma.$disconnect();
+      }
       
       return next();
     } catch (error) {
