@@ -52,7 +52,9 @@ export default function ProductForm({
   useEffect(() => {
     async function loadCategories() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+        const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${API_URL}/categories`, {
           credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to fetch categories");
@@ -88,8 +90,10 @@ export default function ProductForm({
   useEffect(() => {
     async function loadNextSku(prefix: string) {
       try {
+        const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/products/next-sku?prefix=${encodeURIComponent(
+          `${API_URL}/products/next-sku?prefix=${encodeURIComponent(
             prefix
           )}`,
           { credentials: "include" }

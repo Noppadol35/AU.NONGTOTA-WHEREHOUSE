@@ -34,7 +34,9 @@ export default function JobOrderSelector({ selectedJobId, onJobSelect }: Props) 
     setLoading(true);
     try {
       console.log("Fetching job orders...");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/job-orders`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
+      const res = await fetch(`${API_URL}/job-orders`, {
         credentials: "include",
       });
       
@@ -69,7 +71,9 @@ export default function JobOrderSelector({ selectedJobId, onJobSelect }: Props) 
   async function fetchCustomers() {
     try {
       console.log("Fetching customers...");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/job-orders/consumers`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/job-orders/consumers`, {
         credentials: "include",
       });
       

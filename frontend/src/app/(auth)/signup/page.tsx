@@ -111,13 +111,18 @@ export default function SignupPage() {
       };
 
       console.log("Sending request with:", requestBody);
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(requestBody),
-      });
+      const res = await fetch(
+        `${API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(requestBody),
+        }
+      );
 
       const data = await res.json();
       console.log("Response:", data);

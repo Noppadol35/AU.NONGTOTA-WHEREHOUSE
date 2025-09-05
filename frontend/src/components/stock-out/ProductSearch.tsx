@@ -37,8 +37,10 @@ export default function ProductSearch({
 
   async function fetchProducts(term: string) {
     try {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/products?search=${encodeURIComponent(term)}`,
+        `${API_URL}/products?search=${encodeURIComponent(term)}`,
         {
           credentials: "include",
         }

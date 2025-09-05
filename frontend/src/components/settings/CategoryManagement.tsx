@@ -34,7 +34,9 @@ export default function CategoryManagement() {
   async function fetchCategories() {
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/categories`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch categories");
@@ -49,7 +51,9 @@ export default function CategoryManagement() {
 
   async function createCategory(data: CategoryFormData) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/categories`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -72,7 +76,9 @@ export default function CategoryManagement() {
 
   async function updateCategory(id: number, data: CategoryFormData) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/${id}`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/categories/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -95,7 +101,9 @@ export default function CategoryManagement() {
 
   async function deleteCategory(id: number) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/${id}`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/categories/${id}`, {
         method: "DELETE",
         credentials: "include",
       });

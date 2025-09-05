@@ -54,7 +54,9 @@ export default function ProductList() {
 
   async function fetchCategories() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/categories`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch categories");
@@ -74,7 +76,9 @@ export default function ProductList() {
       params.set("page", "1");
       params.set("pageSize", "20");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products?${params.toString()}`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/products?${params.toString()}`, {
         credentials: "include",
       });
       
@@ -99,7 +103,9 @@ export default function ProductList() {
 
   async function createProduct(data: ProductInput) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/products`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -121,7 +127,9 @@ export default function ProductList() {
 
   async function updateProduct(id: number, data: Partial<ProductInput>) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
+      const res = await fetch(`${API_URL}/products/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -143,7 +151,9 @@ export default function ProductList() {
 
   async function deleteProduct(id: number) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
+      const res = await fetch(`${API_URL}/products/${id}`, {
         method: "DELETE",
         credentials: "include",
       });

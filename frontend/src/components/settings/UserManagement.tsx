@@ -98,8 +98,10 @@ export default function UserManagement() {
   async function fetchUsers() {
     try {
       setLoading(true);
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users?page=${currentPage}&pageSize=${pageSize}`,
+        `${API_URL}/users?page=${currentPage}&pageSize=${pageSize}`,
         {
           credentials: "include",
         }
@@ -118,7 +120,9 @@ export default function UserManagement() {
 
   async function fetchBranches() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/branches`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch branches");
@@ -132,8 +136,10 @@ export default function UserManagement() {
   async function fetchAuditLogs() {
     try {
       setAuditLoading(true);
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/audit-logs?page=${currentPage}&pageSize=${pageSize}`,
+        `${API_URL}/audit-logs?page=${currentPage}&pageSize=${pageSize}`,
         {
           credentials: "include",
         }
@@ -150,7 +156,9 @@ export default function UserManagement() {
 
   async function createUser(data: UserFormData) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -172,7 +180,9 @@ export default function UserManagement() {
 
   async function updateUser(id: number, data: Partial<UserFormData>) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/users/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -194,7 +204,9 @@ export default function UserManagement() {
 
   async function deleteUser(id: number) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/users/${id}`, {
         method: "DELETE",
         credentials: "include",
       });

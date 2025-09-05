@@ -70,7 +70,8 @@ export default function JobOrderForm({ mode, onSubmit, onCancel, initial, submit
       const cleanLicensePlate = licensePlate.replace(/[^a-zA-Z0-9ก-๙]/g, '');
       
       // Fetch the next sequence number for this license plate
-      const API_URL = 'http://localhost:8000';
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await fetch(`${API_URL}/job-orders/next-sequence?licensePlate=${encodeURIComponent(cleanLicensePlate)}`, {
         credentials: "include",
       });
@@ -147,7 +148,8 @@ export default function JobOrderForm({ mode, onSubmit, onCancel, initial, submit
       if (mode === "edit") {
         console.log("🔍 JobOrderForm: Sending PUT request to backend...");
         
-        const API_URL = 'http://localhost:8000';
+        const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const response = await fetch(`${API_URL}/job-orders/${initial?.id}`, {
           method: "PUT",
           headers: {

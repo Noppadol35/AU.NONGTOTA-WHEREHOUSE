@@ -68,8 +68,10 @@ export default function StockOutPage() {
 
   async function fetchJobOrderDetail(jobId: number) {
     try {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/job-orders/${jobId}`,
+        `${API_URL}/job-orders/${jobId}`,
         {
           credentials: "include",
         }
@@ -112,8 +114,10 @@ export default function StockOutPage() {
 
     try {
       setLoading(true);
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/job-orders/${selectedJobId}/stock-out`,
+        `${API_URL}/job-orders/${selectedJobId}/stock-out`,
         {
           method: "POST",
           headers: {
@@ -170,8 +174,10 @@ export default function StockOutPage() {
     if (!selectedJobId) return;
 
     try {
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/job-orders/${selectedJobId}/items/${itemId}`,
+        `${API_URL}/job-orders/${selectedJobId}/items/${itemId}`,
         {
           method: "DELETE",
           credentials: "include",

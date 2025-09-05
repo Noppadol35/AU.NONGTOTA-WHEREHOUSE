@@ -99,10 +99,10 @@ export default function JobOrdersPage() {
       if (customer) params.set("customer", customer);
 
       console.log("🔍 Fetching job orders with params:", params.toString());
-      console.log(
-        "🔍 API URL:",
-        `${process.env.NEXT_PUBLIC_API_URL}/job-orders?${params.toString()}`
-      );
+      // console.log(
+      //   "🔍 API URL:",
+      //   `${API_URL}/job-orders?${params.toString()}`
+      // );
 
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";

@@ -38,8 +38,10 @@ export default function BillingPage() {
     const fetchJobOrders = async () => {
       try {
         console.log("Fetching job orders with status IN_PROGRESS...");
+        const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/job-orders?status=IN_PROGRESS`,
+          `${API_URL}/job-orders?status=IN_PROGRESS`,
           {
             credentials: "include",
           }
@@ -82,8 +84,10 @@ export default function BillingPage() {
       try {
         // Fetch job order details
         console.log("Fetching job order details for ID:", selectedJobOrderId);
+        const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const jobOrderResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/job-orders/${selectedJobOrderId}`,
+          `${API_URL}/job-orders/${selectedJobOrderId}`,
           {
             credentials: "include",
           }
@@ -105,8 +109,9 @@ export default function BillingPage() {
           "Fetching stock transactions for job order:",
           selectedJobOrderId
         );
+      
         const transactionsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/stock-transactions?jobOrderId=${selectedJobOrderId}&type=SALE`,
+          `${API_URL}/stock-transactions?jobOrderId=${selectedJobOrderId}&type=SALE`,
           {
             credentials: "include",
           }
@@ -183,8 +188,10 @@ export default function BillingPage() {
       console.log("Financial data:", { subtotal, laborCost, vatAmount, grandTotal, paymentMethod: paymentMethodEnum });
 
       // Update job order status to COMPLETED with financial data
+      const API_URL =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/job-orders/${selectedJobOrderId}/complete`,
+        `${API_URL}/job-orders/${selectedJobOrderId}/complete`,
         {
           method: "PATCH",
           headers: {
@@ -215,8 +222,9 @@ export default function BillingPage() {
       setSuccess("การชำระเงินเสร็จสิ้นแล้ว! สถานะงานถูกอัพเดทเป็น 'เสร็จสิ้น'");
 
       // Refresh job orders list to remove completed job
+      
       const refreshResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/job-orders?status=IN_PROGRESS`,
+        `${API_URL}/job-orders?status=IN_PROGRESS`,
         {
           credentials: "include",
         }
