@@ -11,6 +11,7 @@ import {
   Car,
   Warehouse,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const registerMutation = trpc.users.register.useMutation();
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -103,33 +105,12 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      const requestBody = {
+      await registerMutation.mutateAsync({
         username: formData.username.trim(),
-        password: formData.password,
         fullName: formData.fullName.trim(),
-        branchId: formData.branchId,
-      };
-
-      console.log("Sending request with:", requestBody);
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-      const res = await fetch(
-        `${API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      const data = await res.json();
-      console.log("Response:", data);
-
-      if (!res.ok) {
-        throw new Error(data?.message || "การสมัครสมาชิกล้มเหลว");
-      }
+        password: formData.password,
+        branchId: Number(formData.branchId),
+      });
 
       router.push("/login?message=registration_success");
     } catch (err: any) {

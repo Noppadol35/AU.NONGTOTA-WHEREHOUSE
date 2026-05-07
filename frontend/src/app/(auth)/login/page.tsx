@@ -10,7 +10,6 @@ function LoginForm() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    rememberMe: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +32,7 @@ function LoginForm() {
     setError("");
 
     try {
-      await login(formData.username, formData.password, formData.rememberMe);
+      await login(formData.username, formData.password);
     } catch (err: any) {
       setError(err.message || "เกิดข้อผิดพลาดในการเข้าสู่ระบบ");
     } finally {
@@ -42,11 +41,8 @@ function LoginForm() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -134,21 +130,6 @@ function LoginForm() {
                 </button>
               </div>
             </div>
-
-            <div className="flex items-center">
-              <input
-                id="rememberMe"
-                name="rememberMe"
-                type="checkbox"
-                checked={formData.rememberMe}
-                onChange={handleChange}
-                className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-              />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
-                จดจำฉันไว้ 30 วัน
-              </label>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
