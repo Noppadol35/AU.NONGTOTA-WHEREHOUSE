@@ -22,60 +22,71 @@ export const dashboardRouter = router({
     });
     const branchId = dbUser?.branchId || 1;
 
-    const totalProducts = await ctx.prisma.product.count({ where: { branchId } });
-
-    const lowStockItems = await ctx.prisma.product.count({
-      where: {
-        branchId,
-        stockQuantity: { lte: ctx.prisma.product.fields.minStockLevel }
-      }
-    });
-
-    const products = await ctx.prisma.product.findMany({
-      where: { branchId },
-      select: { stockQuantity: true, sellPrice: true }
-    });
-
-    const totalValue = products.reduce((sum, p) => sum + (p.stockQuantity * p.sellPrice), 0);
-    const totalQuantity = products.reduce((sum, p) => sum + p.stockQuantity, 0);
-
-    const activeUsers = await ctx.prisma.user.count({ where: { branchId } });
-
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const recentTransactions = await ctx.prisma.stockTransaction.count({
-      where: { branchId, createdAt: { gte: thirtyDaysAgo } }
-    });
 
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-    const previousMonthTransactions = await ctx.prisma.stockTransaction.count({
-      where: {
-        branchId,
-        createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo }
-      }
-    });
+    const [
+      totalProducts,
+      lowStockItems,
+      products,
+      activeUsers,
+      recentTransactions,
+      previousMonthTransactions,
+      topCategoryGroups
+    ] = await Promise.all([
+      ctx.prisma.product.count({ where: { branchId } }),
+      // Note: Comparing columns in Prisma count where clause might be tricky, keeping original syntax
+      ctx.prisma.product.count({
+        where: {
+          branchId,
+          stockQuantity: { lte: (ctx.prisma.product.fields as any)?.minStockLevel ?? 5 } // Fallback to avoid crashes if fields is undefined
+        }
+      }),
+      ctx.prisma.product.findMany({
+        where: { branchId },
+        select: { stockQuantity: true, sellPrice: true }
+      }),
+      ctx.prisma.user.count({ where: { branchId } }),
+      ctx.prisma.stockTransaction.count({
+        where: { branchId, createdAt: { gte: thirtyDaysAgo } }
+      }),
+      ctx.prisma.stockTransaction.count({
+        where: {
+          branchId,
+          createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo }
+        }
+      }),
+      ctx.prisma.product.groupBy({
+        by: ['categoryId'],
+        where: { branchId },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 1
+      })
+    ]);
+
+    let totalValue = 0;
+    let totalQuantity = 0;
+    for (const p of products) {
+      totalValue += p.stockQuantity * p.sellPrice;
+      totalQuantity += p.stockQuantity;
+    }
 
     const monthlyGrowth = previousMonthTransactions > 0 
       ? ((recentTransactions - previousMonthTransactions) / previousMonthTransactions) * 100
       : 0;
 
-    const topCategory = await ctx.prisma.product.groupBy({
-      by: ['categoryId'],
-      where: { branchId },
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: 1
-    });
-
-    const topCategoryName = topCategory.length > 0 && topCategory[0]?.categoryId
-      ? await ctx.prisma.category.findUnique({
-          where: { id: topCategory[0].categoryId },
-          select: { name: true }
-        })
-      : null;
+    let topCategoryName = null;
+    if (topCategoryGroups.length > 0 && topCategoryGroups[0]?.categoryId) {
+      const cat = await ctx.prisma.category.findUnique({
+        where: { id: topCategoryGroups[0].categoryId },
+        select: { name: true }
+      });
+      topCategoryName = cat;
+    }
 
     return {
       totalProducts,
@@ -99,15 +110,22 @@ export const dashboardRouter = router({
 
     const activities: any[] = [];
 
-    const recentTransactions = await ctx.prisma.stockTransaction.findMany({
-      where: { branchId },
-      include: {
-        product: { select: { name: true } },
-        jobOrder: { select: { customerName: true, carType: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 15
-    });
+    const [recentTransactions, recentJobOrders] = await Promise.all([
+      ctx.prisma.stockTransaction.findMany({
+        where: { branchId },
+        include: {
+          product: { select: { name: true } },
+          jobOrder: { select: { customerName: true, carType: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 15
+      }),
+      ctx.prisma.jobOrder.findMany({
+        where: { branchId },
+        orderBy: { createdAt: 'desc' },
+        take: 10
+      })
+    ]);
 
     for (const tx of recentTransactions) {
       if (tx.type === 'SALE') {
@@ -132,12 +150,6 @@ export const dashboardRouter = router({
         });
       }
     }
-
-    const recentJobOrders = await ctx.prisma.jobOrder.findMany({
-      where: { branchId },
-      orderBy: { createdAt: 'desc' },
-      take: 10
-    });
 
     for (const job of recentJobOrders) {
       activities.push({

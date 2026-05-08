@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const utils = trpc.useUtils();
 
   // ── tRPC queries ──────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const { data: activities, isLoading: activitiesLoading } = trpc.dashboard.recentActivities.useQuery();
   const { data: lowStockProducts, isLoading: lowStockLoading } = trpc.dashboard.lowStockProducts.useQuery();
 
-  const isLoading = statsLoading || activitiesLoading || lowStockLoading;
+  const isLoading = authLoading || statsLoading || activitiesLoading || lowStockLoading;
 
   const handleManualRefresh = () => {
     utils.dashboard.stats.invalidate();
@@ -28,7 +28,7 @@ export default function DashboardPage() {
     utils.dashboard.lowStockProducts.invalidate();
   };
 
-  if (!user) {
+  if (!authLoading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
