@@ -39,27 +39,55 @@ export default function DashboardPage() {
     );
   }
 
+  const PageHeader = () => (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          {new Date().toLocaleDateString("th-TH", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </p>
+      </div>
+      <Button
+        onClick={handleManualRefresh}
+        disabled={isLoading}
+        variant="outline"
+        className="bg-white hover:bg-gray-50 text-gray-700 border-gray-200 shadow-sm rounded-xl h-10"
+      >
+        <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+        {isLoading ? "กำลังอัพเดท..." : "อัพเดทข้อมูล"}
+      </Button>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="space-y-4 md:space-y-6 p-1">
-        {/* Header Skeleton */}
-        <Skeleton className="h-[104px] md:h-[120px] w-full rounded-xl" />
+      <div className="space-y-4 md:space-y-6">
+        <PageHeader />
         
-        {/* Stats Grid Skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-[100px] md:h-[120px] rounded-xl" />
-          ))}
-        </div>
-
-        {/* Main Content Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
-          <div className="md:col-span-4 space-y-4 md:space-y-6">
-            <Skeleton className="h-[400px] rounded-xl" />
-            <Skeleton className="h-[250px] rounded-xl" />
+        {/* Quick Actions (Keep static even while loading if possible, or omit) */}
+        
+        <div className="p-1 space-y-4 md:space-y-6">
+          {/* Stats Grid Skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-[100px] md:h-[120px] rounded-xl" />
+            ))}
           </div>
-          <div className="md:col-span-8">
-            <Skeleton className="h-[674px] rounded-xl" />
+
+          {/* Main Content Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
+            <div className="md:col-span-4 space-y-4 md:space-y-6">
+              <Skeleton className="h-[400px] rounded-xl" />
+              <Skeleton className="h-[250px] rounded-xl" />
+            </div>
+            <div className="md:col-span-8">
+              <Skeleton className="h-[674px] rounded-xl" />
+            </div>
           </div>
         </div>
       </div>
@@ -80,29 +108,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Page Header (Date & Actions) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {new Date().toLocaleDateString("th-TH", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-        </div>
-        <Button
-          onClick={handleManualRefresh}
-          disabled={isLoading}
-          variant="outline"
-          className="bg-white hover:bg-gray-50 text-gray-700 border-gray-200 shadow-sm rounded-xl h-10"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-          {isLoading ? "กำลังอัพเดท..." : "อัพเดทข้อมูล"}
-        </Button>
-      </div>
+      <PageHeader />
 
       {/* Quick Actions moved to top */}
       <QuickActions />
