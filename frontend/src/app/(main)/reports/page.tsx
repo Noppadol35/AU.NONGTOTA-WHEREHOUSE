@@ -16,19 +16,20 @@ import {
   Activity,
   Shield
 } from 'lucide-react'
-import { reportsService, ReportsSummary } from '@/services/reportsService'
+import { trpc } from '@/lib/trpc'
 
 // Import report components
 import LowStockReport from '@/components/reports/LowStockReport'
 import InventoryValueReport from '@/components/reports/InventoryValueReport'
 import TopMovingItemsReport from '@/components/reports/TopMovingItemsReport'
 import CustomerHistoryReport from '@/components/reports/CustomerHistoryReport'
+import DailyTrendChart from '@/components/reports/DailyTrendChart'
+import TopSalesChart from '@/components/reports/TopSalesChart'
+import StockAgingChart from '@/components/reports/StockAgingChart'
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('low-stock')
-  const [summary, setSummary] = useState<ReportsSummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [timeRange, setTimeRange] = useState<number>(7)
   const router = useRouter()
   const { user } = useAuth()
 
@@ -39,27 +40,17 @@ export default function ReportsPage() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        setError(null)
-        const data = await reportsService.getReportsSummary()
-        setSummary(data)
-      } catch (error: any) {
-        console.error('Failed to fetch reports summary:', error)
-        if (error.message === 'Authentication required') {
-          // Redirect to login if authentication failed
-          router.push('/login')
-          return
-        }
-        setError(error.message || 'Failed to fetch reports summary')
-      } finally {
-        setLoading(false)
+  // tRPC query for summary
+  const { data: summary, isLoading: loading, error, refetch } = trpc.reports.summary.useQuery(undefined, {
+    enabled: user?.role === "OWNER",
+    retry: (failureCount, err: any) => {
+      if (err.data?.code === 'UNAUTHORIZED') {
+        router.push('/login');
+        return false;
       }
+      return failureCount < 3;
     }
-
-    fetchSummary()
-  }, [router])
+  });
 
   // Show loading if user not loaded yet
   if (!user) {
@@ -80,7 +71,7 @@ export default function ReportsPage() {
             Access Denied
           </h1>
           <p className="text-gray-600 mb-4">
-            You don&apos;t have permission to access this page.
+            You don't have permission to access this page.
           </p>
           <button
             onClick={() => router.push("/dashboard")}
@@ -107,9 +98,9 @@ export default function ReportsPage() {
         <div className="text-center text-red-600">
           <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">เกิดข้อผิดพลาด</h2>
-          <p>{error}</p>
+          <p>{error.message}</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => refetch()} 
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             ลองใหม่
@@ -122,14 +113,26 @@ export default function ReportsPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">รายงานระบบ</h1>
-          <p className="text-gray-600 mt-2">ดูข้อมูลสถิติและรายงานต่างๆ ของระบบ</p>
+          <p className="text-gray-600 mt-2">ดูข้อมูลสถิติและรายงานต่างๆ ของระบบแบบเรียลไทม์</p>
         </div>
-        <div className="flex items-center space-x-2 text-gray-500">
-          <FileText className="w-6 h-6" />
-          <span className="text-sm">Reports Dashboard</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2 text-sm font-medium text-gray-600 bg-white border px-3 py-2 rounded-lg shadow-sm">
+            <Activity className="w-4 h-4 text-blue-600" />
+            <span>ช่วงเวลา:</span>
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(Number(e.target.value))}
+              className="bg-transparent border-none outline-none font-bold text-blue-700 cursor-pointer"
+            >
+              <option value={1}>วันนี้ (1 วัน)</option>
+              <option value={7}>7 วันที่ผ่านมา</option>
+              <option value={30}>30 วันที่ผ่านมา</option>
+              <option value={90}>3 เดือนที่ผ่านมา</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -227,58 +230,67 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      {/* Reports Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart3 className="w-5 h-5" />
+      {/* ═══════ Charts Zone ═══════ */}
+      <div className="space-y-6">
+        {/* Full width Area Chart */}
+        <DailyTrendChart days={timeRange} />
+
+        {/* Side by side Bar Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopSalesChart days={timeRange} />
+          <StockAgingChart />
+        </div>
+      </div>
+
+      {/* ═══════ Reports Tabs ═══════ */}
+      <div className="pt-6 border-t border-gray-100">
+        <div className="mb-6 space-y-1">
+          <h2 className="text-2xl font-bold flex items-center space-x-2 text-gray-900">
+            <BarChart3 className="w-6 h-6 text-blue-600" />
             <span>รายงานรายละเอียด</span>
-          </CardTitle>
-          <CardDescription>
-            เลือกประเภทรายงานที่ต้องการดู
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="low-stock" className="flex items-center space-x-2">
+          </h2>
+          <p className="text-gray-500">เลือกดูข้อมูลเจาะลึกและรายการทั้งหมดของแต่ละส่วน</p>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="mb-6">
+            <TabsList className="grid w-full grid-cols-2 md:inline-flex md:w-auto md:grid-cols-none h-auto p-1 bg-muted">
+              <TabsTrigger value="low-stock" className="py-2 px-4 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="hidden sm:inline">สินค้าใกล้หมด</span>
+                <span className="font-medium">สินค้าใกล้หมด</span>
               </TabsTrigger>
-              <TabsTrigger value="inventory-value" className="flex items-center space-x-2">
+              <TabsTrigger value="inventory-value" className="py-2 px-4 flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
-                <span className="hidden sm:inline">มูลค่าสินค้า</span>
+                <span className="font-medium">มูลค่าสินค้า</span>
               </TabsTrigger>
-              <TabsTrigger value="top-moving" className="flex items-center space-x-2">
+              <TabsTrigger value="top-moving" className="py-2 px-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
-                <span className="hidden sm:inline">สินค้าขายดี</span>
+                <span className="font-medium">สินค้าขายดี</span>
               </TabsTrigger>
-              <TabsTrigger value="customer-history" className="flex items-center space-x-2">
+              <TabsTrigger value="customer-history" className="py-2 px-4 flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">ประวัติลูกค้า</span>
+                <span className="font-medium">ประวัติลูกค้า</span>
               </TabsTrigger>
             </TabsList>
+          </div>
 
-            <TabsContent value="low-stock" className="mt-6">
-              <LowStockReport />
-            </TabsContent>
+          <TabsContent value="low-stock" className="mt-0">
+            <LowStockReport />
+          </TabsContent>
 
-            <TabsContent value="inventory-value" className="mt-6">
-              <InventoryValueReport />
-            </TabsContent>
+          <TabsContent value="inventory-value" className="mt-0">
+            <InventoryValueReport />
+          </TabsContent>
 
-            <TabsContent value="top-moving" className="mt-6">
-              <TopMovingItemsReport />
-            </TabsContent>
+          <TabsContent value="top-moving" className="mt-0">
+            <TopMovingItemsReport />
+          </TabsContent>
 
-            <TabsContent value="customer-history" className="mt-6">
-              <CustomerHistoryReport />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+          <TabsContent value="customer-history" className="mt-0">
+            <CustomerHistoryReport />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }
-
-
