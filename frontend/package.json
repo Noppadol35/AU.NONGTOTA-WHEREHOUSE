@@ -28,7 +28,7 @@
     "dotenv": "^17.4.2",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.539.0",
-    "next": "15.4.6",
+    "next": "^16.2.6",
     "next-themes": "^0.4.6",
     "promptpay-qr": "^0.5.0",
     "qrcode": "^1.5.4",
@@ -53,7 +53,7 @@
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "eslint": "^9",
-    "eslint-config-next": "15.4.6",
+    "eslint-config-next": "^16.2.6",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "typescript": "^5"
