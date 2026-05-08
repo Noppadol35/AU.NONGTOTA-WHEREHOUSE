@@ -142,9 +142,9 @@ export default function JobOrderDetail({ jobOrder, onClose, onEdit, onDelete }: 
   // VIEW MODE
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="space-y-6">
-      {/* ═══════ HEADER ═══════ */}
-      <div className="space-y-4">
+    <div className="flex flex-col h-full max-h-[90vh]">
+      {/* ═══════ FIXED HEADER ═══════ */}
+      <div className="shrink-0 px-6 pt-6 pb-4 border-b space-y-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
@@ -157,6 +157,10 @@ export default function JobOrderDetail({ jobOrder, onClose, onEdit, onDelete }: 
               <p className="text-muted-foreground">งานสั่งทำรถยนต์</p>
             </div>
           </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 -mt-1 -mr-2">
+            <X className="w-4 h-4" />
+            <span className="sr-only">ปิด</span>
+          </Button>
         </div>
 
         {/* Status + Actions */}
@@ -194,141 +198,141 @@ export default function JobOrderDetail({ jobOrder, onClose, onEdit, onDelete }: 
         </div>
       </div>
 
-      <Separator />
+      {/* ═══════ SCROLLABLE CONTENT ═══════ */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Customer Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                ข้อมูลลูกค้า
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <InfoRow label="ชื่อลูกค้า" value={currentJobOrder.customerName} />
+              <Separator />
+              <InfoRow label="เบอร์โทรศัพท์" value={currentJobOrder.phoneNumber} />
+            </CardContent>
+          </Card>
 
-      {/* ═══════ CONTENT ═══════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Customer Info */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <User className="w-4 h-4 text-muted-foreground" />
-              ข้อมูลลูกค้า
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <InfoRow label="ชื่อลูกค้า" value={currentJobOrder.customerName} />
-            <Separator />
-            <InfoRow label="เบอร์โทรศัพท์" value={currentJobOrder.phoneNumber} />
-          </CardContent>
-        </Card>
+          {/* Vehicle Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Car className="w-4 h-4 text-muted-foreground" />
+                ข้อมูลรถยนต์
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <InfoRow label="ประเภทรถ" value={currentJobOrder.carType} />
+              <Separator />
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">เลขทะเบียน</span>
+                <Badge variant="outline" className="font-mono font-bold">
+                  {currentJobOrder.licensePlate}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Vehicle Info */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Car className="w-4 h-4 text-muted-foreground" />
-              ข้อมูลรถยนต์
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <InfoRow label="ประเภทรถ" value={currentJobOrder.carType} />
-            <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">เลขทะเบียน</span>
-              <Badge variant="outline" className="font-mono font-bold">
-                {currentJobOrder.licensePlate}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Job Details */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-muted-foreground" />
+                รายละเอียดงาน
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {currentJobOrder.issueDetail && (
+                <DetailBlock label="ปัญหาที่พบ" text={currentJobOrder.issueDetail} />
+              )}
+              {currentJobOrder.jobDetail && (
+                <DetailBlock label="งานที่จะทำ" text={currentJobOrder.jobDetail} />
+              )}
+              {!currentJobOrder.issueDetail && !currentJobOrder.jobDetail && (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  ไม่มีรายละเอียดเพิ่มเติม
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Job Details */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-muted-foreground" />
-              รายละเอียดงาน
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {currentJobOrder.issueDetail && (
-              <DetailBlock label="ปัญหาที่พบ" text={currentJobOrder.issueDetail} />
-            )}
-            {currentJobOrder.jobDetail && (
-              <DetailBlock label="งานที่จะทำ" text={currentJobOrder.jobDetail} />
-            )}
-            {!currentJobOrder.issueDetail && !currentJobOrder.jobDetail && (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                ไม่มีรายละเอียดเพิ่มเติม
-              </p>
-            )}
-          </CardContent>
-        </Card>
+          {/* Metadata */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                ข้อมูลเพิ่มเติม
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <InfoRow
+                label="วันที่สร้าง"
+                value={new Date(currentJobOrder.createdAt).toLocaleDateString("th-TH", {
+                  year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                })}
+              />
+              <Separator />
+              <InfoRow label="สาขา" value={currentJobOrder.branch?.name || "สาขาหลัก"} />
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Metadata */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              ข้อมูลเพิ่มเติม
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <InfoRow
-              label="วันที่สร้าง"
-              value={new Date(currentJobOrder.createdAt).toLocaleDateString("th-TH", {
-                year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-              })}
-            />
-            <Separator />
-            <InfoRow label="สาขา" value={currentJobOrder.branch?.name || "สาขาหลัก"} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ═══════ ITEMS TABLE ═══════ */}
-      {currentJobOrder.items && currentJobOrder.items.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Package className="w-4 h-4 text-muted-foreground" />
-              รายการสินค้า
-              <Badge variant="secondary" className="ml-auto">
-                {currentJobOrder.items.length} รายการ
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Mobile */}
-            <div className="block md:hidden space-y-3">
-              {currentJobOrder.items.map((item) => (
-                <div key={item.id} className="bg-muted rounded-lg p-4 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm font-medium flex-1 pr-2">{item.product.name}</span>
-                    <Badge>{item.qty}</Badge>
+        {/* ═══════ ITEMS TABLE ═══════ */}
+        {currentJobOrder.items && currentJobOrder.items.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Package className="w-4 h-4 text-muted-foreground" />
+                รายการสินค้า
+                <Badge variant="secondary" className="ml-auto">
+                  {currentJobOrder.items.length} รายการ
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Mobile */}
+              <div className="block md:hidden space-y-3">
+                {currentJobOrder.items.map((item) => (
+                  <div key={item.id} className="bg-muted rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium flex-1 pr-2">{item.product.name}</span>
+                      <Badge>{item.qty}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {/* Desktop */}
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>สินค้า</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead className="text-center">จำนวน</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentJobOrder.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.product.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{item.product.sku}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary">{item.qty}</Badge>
-                      </TableCell>
+              {/* Desktop */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>สินค้า</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead className="text-center">จำนวน</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  </TableHeader>
+                  <TableBody>
+                    {currentJobOrder.items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.product.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{item.product.sku}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">{item.qty}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* ═══════ DELETE DIALOG ═══════ */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

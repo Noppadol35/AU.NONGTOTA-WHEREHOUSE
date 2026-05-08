@@ -155,27 +155,33 @@ export default function JobOrderForm({ mode, onSubmit, onCancel, initial, submit
   const isBusy = loading || updateMutation.isPending;
 
   return (
-    <div className="flex flex-col max-h-[80vh]">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-background px-4 md:px-6 pt-4 md:pt-6 pb-4 border-b">
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
-            <FileText className="w-6 h-6 md:w-7 md:h-7 text-white" />
+    <div className="flex flex-col h-full max-h-[90vh]">
+      {/* ═══════ FIXED HEADER ═══════ */}
+      <div className="shrink-0 px-6 pt-6 pb-4 border-b">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
+              <FileText className="w-6 h-6 md:w-7 md:h-7 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold text-foreground mb-1">
+                {mode === "create" ? "สร้างงานสั่งทำใหม่" : "แก้ไขงานสั่งทำ"}
+              </h2>
+              <p className="text-muted-foreground text-sm md:text-base">
+                {mode === "create" ? "กรอกข้อมูลงานสั่งทำใหม่" : "อัปเดตข้อมูลงานสั่งทำ"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-foreground mb-1">
-              {mode === "create" ? "สร้างงานสั่งทำใหม่" : "แก้ไขงานสั่งทำ"}
-            </h2>
-            <p className="text-muted-foreground text-sm md:text-base">
-              {mode === "create" ? "กรอกข้อมูลงานสั่งทำใหม่" : "อัปเดตข้อมูลงานสั่งทำ"}
-            </p>
-          </div>
+          <Button type="button" variant="ghost" size="icon" onClick={onCancel} className="shrink-0 -mt-1 -mr-2">
+            <X className="w-4 h-4" />
+            <span className="sr-only">ปิด</span>
+          </Button>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-6">
+        {/* ═══════ SCROLLABLE BODY ═══════ */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {error && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <div className="flex items-center gap-3">
@@ -333,8 +339,8 @@ export default function JobOrderForm({ mode, onSubmit, onCancel, initial, submit
         </div>
         </div>
 
-        {/* Sticky Footer */}
-        <div className="sticky bottom-0 z-10 bg-background px-4 md:px-6 py-4 border-t">
+        {/* ═══════ FIXED FOOTER ═══════ */}
+        <div className="shrink-0 px-6 py-4 border-t">
           <div className="flex flex-col sm:flex-row items-center justify-end gap-3">
             <Button
               type="button"
