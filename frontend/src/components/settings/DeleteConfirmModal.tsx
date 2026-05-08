@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   fullName: string | null;
   role: "OWNER" | "MANAGER" | "WORKER";
@@ -18,7 +18,7 @@ interface User {
 interface DeleteConfirmModalProps {
   user: User | null;
   onClose: () => void;
-  onConfirm: (id: number) => Promise<void>;
+  onConfirm: (id: string) => Promise<void>;
 }
 
 export default function DeleteConfirmModal({

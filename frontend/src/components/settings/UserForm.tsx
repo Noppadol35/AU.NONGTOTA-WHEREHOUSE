@@ -14,7 +14,7 @@ import {
 import Modal from "@/components/ui/Modal";
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   fullName: string | null;
   role: "OWNER" | "MANAGER" | "WORKER";
@@ -29,6 +29,7 @@ interface User {
 interface UserFormData {
   username: string;
   fullName: string;
+  email: string;
   role: "OWNER" | "MANAGER" | "WORKER";
   branchId: number;
   password?: string;
@@ -57,6 +58,7 @@ export default function UserForm({
   const [formData, setFormData] = useState<UserFormData>({
     username: "",
     fullName: "",
+    email: "",
     role: "WORKER",
     branchId: 1,
   });
@@ -68,6 +70,7 @@ export default function UserForm({
       setFormData({
         username: user.username,
         fullName: user.fullName || "",
+        email: "", // email ไม่แก้ได้หลัง create
         role: user.role,
         branchId: user.branchId,
       });
@@ -75,6 +78,7 @@ export default function UserForm({
       setFormData({
         username: "",
         fullName: "",
+        email: "",
         role: "WORKER",
         branchId: 1,
       });
@@ -173,6 +177,26 @@ export default function UserForm({
                 />
               </div>
             </div>
+
+            {/* Email — required only on create */}
+            {!isEdit && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  อีเมล <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required={!isEdit}
+                  className="w-full px-4 py-3 border text-gray-900 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm"
+                  placeholder="email@example.com"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+                <p className="mt-1 text-xs text-gray-500">ใช้สำหรับเข้าสู่ระบบ — ไม่สามารถเปลี่ยนได้ในภายหลัง</p>
+              </div>
+            )}
           </div>
 
           {/* Role & Branch Section */}

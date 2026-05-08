@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Plus,
   Edit,
@@ -18,23 +18,22 @@ import {
 import UserForm from "./UserForm";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import AuditLogDetailModal from "./AuditLogDetailModal";
+import { trpc } from "@/lib/trpc";
 
-interface User {
-  id: number;
+interface UserItem {
+  id: string;
   username: string;
   fullName: string | null;
   role: "OWNER" | "MANAGER" | "WORKER";
   createdAt: string;
   branchId: number;
-  branch: {
-    id: number;
-    name: string;
-  };
+  branch: { id: number; name: string };
 }
 
 interface UserFormData {
   username: string;
   fullName: string;
+  email: string;
   role: "OWNER" | "MANAGER" | "WORKER";
   branchId: number;
   password?: string;
@@ -49,228 +48,86 @@ interface AuditLog {
   time: string;
   entityType: string;
   entityId?: number;
-  oldValues?: any;
-  newValues?: any;
-}
-
-interface Branch {
-  id: number;
-  name: string;
+  oldValues?: unknown;
+  newValues?: unknown;
 }
 
 export default function UserManagement() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [auditLoading, setAuditLoading] = useState(false);
-
-  // User Management States
   const [openCreate, setOpenCreate] = useState(false);
-  const [openEdit, setOpenEdit] = useState<User | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<User | null>(null);
-
-  // Pagination States
+  const [openEdit, setOpenEdit] = useState<UserItem | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<UserItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalUsers, setTotalUsers] = useState(0);
   const [pageSize] = useState(50);
-
-  // Tab States
   const [activeTab, setActiveTab] = useState<"users" | "audit">("users");
+  const [auditDetailModal, setAuditDetailModal] = useState<AuditLog | null>(null);
 
-  // Audit Log Detail Modal State
-  const [auditDetailModal, setAuditDetailModal] = useState<AuditLog | null>(
-    null
+  const utils = trpc.useUtils();
+
+  // ── Queries ──────────────────────────────────────────────────────────────────
+  const { data: usersData, isLoading: loading } = trpc.users.list.useQuery({
+    page: currentPage,
+    pageSize,
+  });
+  const users = (usersData?.items ?? []) as unknown as UserItem[];
+  const totalUsers = usersData?.total ?? 0;
+  const totalPages = Math.ceil(totalUsers / pageSize);
+
+  const { data: branchesData } = trpc.branches.list.useQuery();
+  const branches = branchesData?.items ?? [];
+
+  const { data: auditData, isLoading: auditLoading } = trpc.auditLogs.list.useQuery(
+    { page: currentPage, pageSize },
+    { enabled: activeTab === "audit" }
   );
+  const auditLogs = (auditData?.items ?? []) as unknown as AuditLog[];
 
-  useEffect(() => {
-    fetchUsers();
-    fetchBranches();
-  }, [currentPage]);
-
-  useEffect(() => {
-    if (activeTab === "audit") {
-      fetchAuditLogs();
-    }
-  }, [activeTab]);
-
-  async function fetchUsers() {
-    try {
-      setLoading(true);
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
-      const res = await fetch(
-        `${API_URL}/users?page=${currentPage}&pageSize=${pageSize}`,
-        {
-          credentials: "include",
-        }
-      );
-      if (!res.ok) throw new Error("Failed to fetch users");
-      const data = await res.json();
-      setUsers(data.items || []);
-      setTotalUsers(data.total || 0);
-      setTotalPages(Math.ceil((data.total || 0) / pageSize));
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchBranches() {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/branches`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch branches");
-      const data = await res.json();
-      setBranches(data.items || []);
-    } catch (error) {
-      console.error("Error fetching branches:", error);
-    }
-  }
-
-  async function fetchAuditLogs() {
-    try {
-      setAuditLoading(true);
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(
-        `${API_URL}/audit-logs?page=${currentPage}&pageSize=${pageSize}`,
-        {
-          credentials: "include",
-        }
-      );
-      if (!res.ok) throw new Error("Failed to fetch audit logs");
-      const data = await res.json();
-      setAuditLogs(data.items || []);
-    } catch (error) {
-      console.error("Error fetching audit logs:", error);
-    } finally {
-      setAuditLoading(false);
-    }
-  }
-
-  async function createUser(data: UserFormData) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Create failed");
-      }
-
+  // ── Mutations ─────────────────────────────────────────────────────────────────
+  const createMutation = trpc.users.create.useMutation({
+    onSuccess: () => {
+      utils.users.list.invalidate();
       setOpenCreate(false);
-      await fetchUsers();
-    } catch (error) {
-      console.error("Error creating user:", error);
-      alert(error instanceof Error ? error.message : "Create failed");
-    }
-  }
+    },
+    onError: (err) => alert(err.message),
+  });
 
-  async function updateUser(id: number, data: Partial<UserFormData>) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/users/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Update failed");
-      }
-
+  const updateMutation = trpc.users.update.useMutation({
+    onSuccess: () => {
+      utils.users.list.invalidate();
       setOpenEdit(null);
-      await fetchUsers();
-    } catch (error) {
-      console.error("Error updating user:", error);
-      alert(error instanceof Error ? error.message : "Update failed");
-    }
-  }
+    },
+    onError: (err) => alert(err.message),
+  });
 
-  async function deleteUser(id: number) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/users/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Delete failed");
-      }
-
+  const deleteMutation = trpc.users.delete.useMutation({
+    onSuccess: () => {
+      utils.users.list.invalidate();
       setDeleteConfirm(null);
-      await fetchUsers();
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      alert(error instanceof Error ? error.message : "Delete failed");
-    }
-  }
+    },
+    onError: (err) => alert(err.message),
+  });
 
-  const handleEdit = (user: User) => {
-    setOpenEdit(user);
-  };
-
-  const handleCancel = () => {
-    setOpenCreate(false);
-    setOpenEdit(null);
-  };
-
+  // ── Helpers ───────────────────────────────────────────────────────────────────
   const getRoleInfo = (role: string) => {
     switch (role) {
       case "OWNER":
-        return {
-          label: "เจ้าของระบบ",
-          color: "bg-red-100 text-red-800",
-          icon: Shield,
-        };
+        return { label: "เจ้าของระบบ", color: "bg-red-100 text-red-800", icon: Shield };
       case "MANAGER":
-        return {
-          label: "ผู้จัดการ",
-          color: "bg-blue-100 text-blue-800",
-          icon: Users,
-        };
+        return { label: "ผู้จัดการ", color: "bg-blue-100 text-blue-800", icon: Users };
       case "WORKER":
-        return {
-          label: "พนักงาน",
-          color: "bg-green-100 text-green-800",
-          icon: User,
-        };
+        return { label: "พนักงาน", color: "bg-green-100 text-green-800", icon: User };
       default:
-        return {
-          label: "ไม่ระบุ",
-          color: "bg-gray-100 text-gray-800",
-          icon: User,
-        };
+        return { label: "ไม่ระบุ", color: "bg-gray-100 text-gray-800", icon: User };
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("th-TH", {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("th-TH", {
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
 
   return (
     <div className="space-y-6">
@@ -292,60 +149,38 @@ export default function UserManagement() {
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "users"
-                ? "border-orange-500 text-orange-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              จัดการผู้ใช้ ({totalUsers})
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab("audit")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "audit"
-                ? "border-orange-500 text-orange-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Audit Log
-            </div>
-          </button>
+          {(["users", "audit"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab
+                  ? "border-orange-500 text-orange-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {tab === "users" ? <Users className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+                {tab === "users" ? `จัดการผู้ใช้ (${totalUsers})` : "Audit Log"}
+              </div>
+            </button>
+          ))}
         </nav>
       </div>
 
       {/* Content */}
       {activeTab === "users" ? (
-        /* Users Management Tab */
         <div className="space-y-6">
-          {/* Users Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ผู้ใช้
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      สิทธิ์
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      สาขา
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      วันที่สร้าง
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      การดำเนินการ
-                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ผู้ใช้</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สิทธิ์</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สาขา</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่สร้าง</th>
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">การดำเนินการ</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -353,51 +188,34 @@ export default function UserManagement() {
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center">
                         <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                          <span className="ml-3 text-gray-500">
-                            กำลังโหลดข้อมูล...
-                          </span>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
+                          <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
                         </div>
                       </td>
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-12 text-center text-gray-500"
-                      >
-                        ไม่พบข้อมูลผู้ใช้
-                      </td>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">ไม่พบข้อมูลผู้ใช้</td>
                     </tr>
                   ) : (
                     users.map((user) => {
                       const roleInfo = getRoleInfo(user.role);
                       const RoleIcon = roleInfo.icon;
-
                       return (
-                        <tr
-                          key={user.id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
+                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center">
                               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                                 <User className="w-5 h-5 text-gray-600" />
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {user.fullName || "ไม่ระบุชื่อ"}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  @{user.username}
-                                </div>
+                                <div className="text-sm font-medium text-gray-900">{user.fullName || "ไม่ระบุชื่อ"}</div>
+                                <div className="text-sm text-gray-500">@{user.username}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${roleInfo.color}`}
-                            >
+                            <span className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${roleInfo.color}`}>
                               <RoleIcon className="w-3 h-3" />
                               {roleInfo.label}
                             </span>
@@ -405,23 +223,19 @@ export default function UserManagement() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
                               <Building className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-gray-900">
-                                {user.branch?.name || "ไม่ระบุสาขา"}
-                              </span>
+                              <span className="text-sm text-gray-900">{user.branch?.name || "ไม่ระบุสาขา"}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-gray-900">
-                                {formatDate(user.createdAt)}
-                              </span>
+                              <span className="text-sm text-gray-900">{formatDate(user.createdAt)}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end gap-2">
                               <button
-                                onClick={() => handleEdit(user)}
+                                onClick={() => setOpenEdit(user)}
                                 className="text-orange-600 hover:text-orange-900 p-2 rounded-lg hover:bg-orange-50 transition-colors"
                               >
                                 <Edit className="w-4 h-4" />
@@ -447,21 +261,13 @@ export default function UserManagement() {
               <div className="bg-white px-6 py-4 border-t border-gray-200">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-700">
-                    แสดง{" "}
-                    <span className="font-medium">
-                      {(currentPage - 1) * pageSize + 1}
-                    </span>{" "}
-                    ถึง{" "}
-                    <span className="font-medium">
-                      {Math.min(currentPage * pageSize, totalUsers)}
-                    </span>{" "}
-                    จาก <span className="font-medium">{totalUsers}</span> รายการ
+                    แสดง <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> ถึง{" "}
+                    <span className="font-medium">{Math.min(currentPage * pageSize, totalUsers)}</span> จาก{" "}
+                    <span className="font-medium">{totalUsers}</span> รายการ
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() =>
-                        setCurrentPage(Math.max(1, currentPage - 1))
-                      }
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
                       className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -471,9 +277,7 @@ export default function UserManagement() {
                       {currentPage}
                     </span>
                     <button
-                      onClick={() =>
-                        setCurrentPage(Math.min(totalPages, currentPage + 1))
-                      }
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
                       className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -493,21 +297,11 @@ export default function UserManagement() {
               <table className="w-full min-w-[800px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                      ผู้ใช้
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                      การดำเนินการ
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-0">
-                      รายละเอียด
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 hidden md:table-cell">
-                      IP Address
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                      เวลา
-                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">ผู้ใช้</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">การดำเนินการ</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-0">รายละเอียด</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 hidden md:table-cell">IP Address</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">เวลา</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -515,34 +309,22 @@ export default function UserManagement() {
                     <tr>
                       <td colSpan={5} className="px-4 py-12 text-center">
                         <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                          <span className="ml-3 text-gray-500">
-                            กำลังโหลดข้อมูล...
-                          </span>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
+                          <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
                         </div>
                       </td>
                     </tr>
                   ) : auditLogs.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="px-4 py-12 text-center text-gray-500"
-                      >
-                        ไม่พบข้อมูล Audit Log
-                      </td>
+                      <td colSpan={5} className="px-4 py-12 text-center text-gray-500">ไม่พบข้อมูล Audit Log</td>
                     </tr>
                   ) : (
                     auditLogs.map((log) => (
-                      <tr
-                        key={log.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
+                      <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-sm font-medium text-gray-900 truncate max-w-20">
-                              {log.user}
-                            </span>
+                            <span className="text-sm font-medium text-gray-900 truncate max-w-20">{log.user}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -552,10 +334,7 @@ export default function UserManagement() {
                         </td>
                         <td className="px-4 py-3 min-w-0">
                           <div className="flex items-center gap-2">
-                            <div
-                              className="text-sm text-gray-900 truncate max-w-48 sm:max-w-64 md:max-w-80 lg:max-w-96"
-                              title={log.details}
-                            >
+                            <div className="text-sm text-gray-900 truncate max-w-48 sm:max-w-64 md:max-w-80 lg:max-w-96" title={log.details}>
                               {log.details}
                             </div>
                             <button
@@ -568,14 +347,10 @@ export default function UserManagement() {
                           </div>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
-                          <span className="text-sm text-gray-500 font-mono truncate max-w-24 block">
-                            {log.ip}
-                          </span>
+                          <span className="text-sm text-gray-500 font-mono truncate max-w-24 block">{log.ip}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm text-gray-900 truncate max-w-28">
-                            {log.time}
-                          </div>
+                          <div className="text-sm text-gray-900 truncate max-w-28">{log.time}</div>
                         </td>
                       </tr>
                     ))
@@ -591,14 +366,27 @@ export default function UserManagement() {
       {(openCreate || openEdit) && (
         <UserForm
           open={openCreate || !!openEdit}
-          onClose={handleCancel}
+          onClose={() => { setOpenCreate(false); setOpenEdit(null); }}
           user={openEdit}
-          branches={branches}
+          branches={branches as unknown as { id: number; name: string }[]}
           onSubmit={async (data: UserFormData) => {
             if (openEdit) {
-              await updateUser(openEdit.id, data);
+              updateMutation.mutate({
+                id: openEdit.id,
+                fullName: data.fullName,
+                role: data.role,
+                branchId: data.branchId,
+              });
             } else {
-              await createUser(data);
+              createMutation.mutate({
+                username: data.username,
+                fullName: data.fullName,
+                name: data.fullName,
+                email: data.email,
+                role: data.role,
+                branchId: data.branchId,
+                password: data.password!,
+              });
             }
           }}
         />
@@ -609,7 +397,7 @@ export default function UserManagement() {
         <DeleteConfirmModal
           user={deleteConfirm}
           onClose={() => setDeleteConfirm(null)}
-          onConfirm={deleteUser}
+          onConfirm={async (id: string) => { await deleteMutation.mutateAsync({ id }); }}
         />
       )}
 

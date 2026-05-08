@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Edit, Trash2, FolderCog } from "lucide-react";
 import Modal from "@/components/ui/Modal";
+import { trpc } from "@/lib/trpc";
 
 interface Category {
   id: number;
@@ -17,116 +18,48 @@ interface CategoryFormData {
 }
 
 export default function CategoryManagement() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState<Category | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Category | null>(null);
-  const [formData, setFormData] = useState<CategoryFormData>({
-    name: "",
-    skuPrefix: "",
-  });
+  const [formData, setFormData] = useState<CategoryFormData>({ name: "", skuPrefix: "" });
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const utils = trpc.useUtils();
 
-  async function fetchCategories() {
-    try {
-      setLoading(true);
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/categories`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      const data = await res.json();
-      setCategories(data.items ?? []);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data, isLoading: loading } = trpc.categories.list.useQuery();
+  const categories: Category[] = (data?.items ?? []) as Category[];
 
-  async function createCategory(data: CategoryFormData) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/categories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Create failed");
-      }
-      
+  const createMutation = trpc.categories.create.useMutation({
+    onSuccess: () => {
+      utils.categories.list.invalidate();
       setOpenCreate(false);
       setFormData({ name: "", skuPrefix: "" });
-      await fetchCategories();
-    } catch (error) {
-      console.error("Error creating category:", error);
-      alert(error instanceof Error ? error.message : "Create failed");
-    }
-  }
+    },
+    onError: (err) => alert(err.message),
+  });
 
-  async function updateCategory(id: number, data: CategoryFormData) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/categories/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Update failed");
-      }
-      
+  const updateMutation = trpc.categories.update.useMutation({
+    onSuccess: () => {
+      utils.categories.list.invalidate();
       setOpenEdit(null);
       setFormData({ name: "", skuPrefix: "" });
-      await fetchCategories();
-    } catch (error) {
-      console.error("Error updating category:", error);
-      alert(error instanceof Error ? error.message : "Update failed");
-    }
-  }
+    },
+    onError: (err) => alert(err.message),
+  });
 
-  async function deleteCategory(id: number) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/categories/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Delete failed");
-      }
-      
+  const deleteMutation = trpc.categories.delete.useMutation({
+    onSuccess: () => {
+      utils.categories.list.invalidate();
       setDeleteConfirm(null);
-      await fetchCategories();
-    } catch (error) {
-      console.error("Error deleting category:", error);
-      alert(error instanceof Error ? error.message : "Delete failed");
-    }
-  }
+    },
+    onError: (err) => alert(err.message),
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (openEdit) {
-      updateCategory(openEdit.id, formData);
+      updateMutation.mutate({ id: openEdit.id, ...formData });
     } else {
-      createCategory(formData);
+      createMutation.mutate(formData);
     }
   };
 
@@ -422,7 +355,7 @@ export default function CategoryManagement() {
               </button>
               <button
                 type="button"
-                onClick={() => deleteCategory(deleteConfirm.id)}
+                onClick={() => deleteMutation.mutate({ id: deleteConfirm.id })}
                 disabled={deleteConfirm.productCount > 0}
                 className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium flex items-center gap-2 ${
                   deleteConfirm.productCount > 0
