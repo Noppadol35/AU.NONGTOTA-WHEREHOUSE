@@ -1,477 +1,355 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import Modal from "@/components/ui/Modal";
+import { trpc } from "@/lib/trpc";
 import ProductForm from "./ProductForm";
-import { SquarePen, Trash2 } from "lucide-react";
-
-interface Category {
-  id: number;
-  name: string;
-  skuPrefix: string | null;
-}
-
-interface Product {
-  id: number;
-  sku: string;
-  barcode: string | null;
-  name: string;
-  description: string | null;
-  costPrice: number;
-  sellPrice: number;
-  stockQuantity: number;
-  minStockLevel: number;
-  categoryId: number;
-  category: Category;
-  branchId: number;
-  createdAt: string;
-}
-
-interface ProductInput {
-  sku: string;
-  barcode: string;
-  name: string;
-  description: string | undefined;
-  costPrice: number;
-  sellPrice: number;
-  minStockLevel: number;
-  categoryId: number | null;
-  branchId: number;
-}
+import { SquarePen, Trash2, EllipsisVertical, Search, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
 
 export default function ProductList() {
   const { user } = useAuth();
-  const [items, setItems] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
   const [q, setQ] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [total, setTotal] = useState(0);
+  const [categoryId, setCategoryId] = useState<number | undefined>();
+  const [page] = useState(1);
   const [openCreate, setOpenCreate] = useState(false);
-  const [openEdit, setOpenEdit] = useState<Product | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<Product | null>(null);
+  const [openEdit, setOpenEdit] = useState<any | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<any | null>(null);
 
-  async function fetchCategories() {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/categories`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      const data = await res.json();
-      setCategories(data.items ?? []);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  }
+  const utils = trpc.useUtils();
 
-  async function fetchProducts() {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (q) params.set("q", q);
-      if (categoryId) params.set("categoryId", categoryId);
-      params.set("page", "1");
-      params.set("pageSize", "20");
-      
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/products?${params.toString()}`, {
-        credentials: "include",
-      });
-      
-      if (!res.ok) throw new Error("Failed to fetch products");
-      const data = await res.json();
-      setItems(data.items ?? []);
-      setTotal(data.total ?? 0);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // ── Queries ──────────────────────────────────────────────────────────────────
+  const { data: categoriesData } = trpc.categories.list.useQuery();
+  const categories = categoriesData?.items ?? [];
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const { data: productsData, isLoading } = trpc.products.list.useQuery({
+    q: q || undefined,
+    categoryId: categoryId ?? undefined,
+    page,
+    pageSize: 20,
+  });
+  const items = productsData?.items ?? [];
+  const total = productsData?.total ?? 0;
 
-  useEffect(() => {
-    fetchProducts();
-  }, [q, categoryId]);
-
-  async function createProduct(data: ProductInput) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${API_URL}/products`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Create failed");
-      }
-      
+  // ── Mutations ─────────────────────────────────────────────────────────────────
+  const createMutation = trpc.products.create.useMutation({
+    onSuccess: () => {
+      utils.products.list.invalidate();
       setOpenCreate(false);
-      await fetchProducts();
-    } catch (error) {
-      console.error("Error creating product:", error);
-      alert(error instanceof Error ? error.message : "Create failed");
-    }
-  }
+      toast.success("เพิ่มสินค้าเรียบร้อยแล้ว");
+    },
+    onError: (err) => {
+      toast.error(err.message || "เกิดข้อผิดพลาดในการเพิ่มสินค้า");
+    },
+  });
 
-  async function updateProduct(id: number, data: Partial<ProductInput>) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
-      const res = await fetch(`${API_URL}/products/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Update failed");
-      }
-      
+  const updateMutation = trpc.products.update.useMutation({
+    onSuccess: () => {
+      utils.products.list.invalidate();
       setOpenEdit(null);
-      await fetchProducts();
-    } catch (error) {
-      console.error("Error updating product:", error);
-      alert(error instanceof Error ? error.message : "Update failed");
-    }
-  }
+      toast.success("บันทึกการแก้ไขเรียบร้อยแล้ว");
+    },
+    onError: (err) => {
+      toast.error(err.message || "เกิดข้อผิดพลาดในการแก้ไขสินค้า");
+    },
+  });
 
-  async function deleteProduct(id: number) {
-    try {
-      const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
-      const res = await fetch(`${API_URL}/products/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Delete failed");
-      }
-      
+  const deleteMutation = trpc.products.delete.useMutation({
+    onSuccess: () => {
+      utils.products.list.invalidate();
       setDeleteConfirm(null);
-      await fetchProducts();
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      alert(error instanceof Error ? error.message : "Delete failed");
+      toast.success("ลบสินค้าเรียบร้อยแล้ว");
+    },
+    onError: (err) => {
+      toast.error(err.message || "เกิดข้อผิดพลาดในการลบสินค้า");
+    },
+  });
+
+  // ── Columns ───────────────────────────────────────────────────────────────────
+  const columns = useMemo<ColumnDef<any>[]>(() => {
+    const baseCols: ColumnDef<any>[] = [
+      {
+        accessorKey: "sku",
+        header: "SKU",
+        cell: ({ row }) => (
+          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+            {row.getValue("sku")}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "name",
+        header: "ชื่อสินค้า",
+        cell: ({ row }) => {
+          const p = row.original;
+          return (
+            <div>
+              <div className="font-medium">{p.name}</div>
+              {p.description && (
+                <div className="text-sm text-muted-foreground truncate max-w-[200px] lg:max-w-[300px]">
+                  {p.description}
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "category",
+        header: "หมวดหมู่",
+        cell: ({ row }) => (
+          <Badge variant="secondary" className="font-normal">
+            {row.original.category?.name ?? "-"}
+          </Badge>
+        ),
+      },
+    ];
+
+    if (user?.role === "OWNER") {
+      baseCols.push({
+        accessorKey: "costPrice",
+        header: "ต้นทุน",
+        cell: ({ row }) => {
+          const cost = row.original.costPrice;
+          return `฿${typeof cost === "number" ? cost.toFixed(2) : "-"}`;
+        },
+      });
     }
-  }
+
+    baseCols.push(
+      {
+        accessorKey: "stockQuantity",
+        header: "จำนวนคงเหลือ",
+        cell: ({ row }) => {
+          const p = row.original;
+          const isLow = p.stockQuantity <= (p.minStockLevel || 0);
+          return (
+            <div className="flex items-center gap-2">
+              <span className={`font-medium ${isLow ? "text-destructive" : ""}`}>
+                {p.stockQuantity.toLocaleString()}
+              </span>
+              {isLow && (
+                <Badge variant="destructive" className="text-[10px] px-1 py-0 leading-none">
+                  ต่ำ
+                </Badge>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "sellPrice",
+        header: "ราคาขาย",
+        cell: ({ row }) => `฿${row.original.sellPrice.toFixed(2)}`,
+      },
+      {
+        id: "actions",
+        header: () => <div className="text-right">จัดการ</div>,
+        meta: { className: "text-right" },
+        cell: ({ row }) => {
+          const p = row.original;
+          if (user?.role === "WORKER") {
+            return (
+              <span className="text-xs text-muted-foreground italic flex justify-end items-center h-8">
+                ดูข้อมูลเท่านั้น
+              </span>
+            );
+          }
+          return (
+            <div className="flex justify-end">
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">เปิดเมนู</span>
+                    <EllipsisVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setOpenEdit(p)} className="cursor-pointer">
+                    <SquarePen className="mr-2 h-4 w-4" />
+                    <span>แก้ไข</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDeleteConfirm(p)}
+                    className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>ลบ</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      }
+    );
+
+    return baseCols;
+  }, [user?.role]);
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+      <Card>
+        <CardHeader className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">จัดการสินค้า</h1>
-            <p className="text-gray-600">ค้นหา แก้ไข และจัดการข้อมูลสินค้าทั้งหมด</p>
+            <CardTitle className="text-2xl font-bold">จัดการสินค้า</CardTitle>
+            <CardDescription>ค้นหา แก้ไข และจัดการข้อมูลสินค้าทั้งหมด</CardDescription>
           </div>
-          <div className="mt-4 lg:mt-0">
-            <button 
-              className="px-6 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium flex items-center gap-2"
+          <div>
+            <Button
+              className="bg-orange-600 hover:bg-orange-700 text-white"
               onClick={() => setOpenCreate(true)}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
+              <Plus className="w-4 h-4 mr-2" />
               เพิ่มสินค้าใหม่
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {/* Search and Filter */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">ค้นหาสินค้า</label>
-            <input 
-              className="w-full px-4 py-3 border border-gray-300 text-gray-900 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors" 
-              placeholder="ค้นหาจากชื่อ, SKU หรือคำอธิบาย..." 
-              value={q} 
-              onChange={(e) => setQ(e.target.value)} 
-            />
-          </div>
-          <div className="lg:w-64">
-            <label className="block text-sm font-medium text-gray-700 mb-2">หมวดหมู่</label>
-            <select 
-              className="w-full px-4 py-3 border border-gray-300 text-gray-900 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors" 
-              value={categoryId} 
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="">ทุกหมวดหมู่</option>
-              {categories.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Products Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อสินค้า</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">หมวดหมู่</th>
-                {user?.role === 'OWNER' && (
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ต้นทุน</th>
-                )}
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จำนวนคงเหลือ</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ราคาขาย</th>
-                <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">การดำเนินการ</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                      <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : items.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                    ไม่พบข้อมูลสินค้า
-                  </td>
-                </tr>
-              ) : (
-                items.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                        {p.sku}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{p.name}</div>
-                        {p.description && (
-                          <div className="text-sm text-gray-500 truncate max-w-xs">{p.description}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {p.category?.name ?? "-"}
-                      </span>
-                    </td>
-                    {user?.role === 'OWNER' && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ฿{typeof p.costPrice === 'number' ? p.costPrice.toFixed(2) : '-'}
-                      </td>
-                    )}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className={`text-sm font-medium ${
-                          p.stockQuantity <= (p.minStockLevel || 0) ? 'text-red-600' : 'text-gray-900'
-                        }`}>
-                          {p.stockQuantity.toLocaleString()}
-                        </span>
-                        {p.stockQuantity <= (p.minStockLevel || 0) && (
-                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            ต่ำ
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ฿{p.sellPrice.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        {user?.role !== 'WORKER' && (
-                          <>
-                            <button
-                              onClick={() => setOpenEdit(p)}
-                              className="text-orange-600 hover:text-orange-900 p-2 rounded-lg hover:bg-orange-50 transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <SquarePen />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(p)}
-                              className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <Trash2 />
-                              </svg>
-                            </button>
-                          </>
-                        )}
-                        {user?.role === 'WORKER' && (
-                          <span className="text-xs text-gray-400 italic">ดูข้อมูลเท่านั้น</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination */}
-        {total > 20 && (
-          <div className="bg-white px-6 py-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                แสดง <span className="font-medium">1</span> ถึง <span className="font-medium">20</span> จาก <span className="font-medium">{total}</span> รายการ
-              </div>
-              <div className="flex items-center space-x-2">
-                <button className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                  ก่อนหน้า
-                </button>
-                <button className="px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg">
-                  1
-                </button>
-                <button className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                  2
-                </button>
-                <button className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                  ถัดไป
-                </button>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 space-y-2">
+              <label className="text-sm font-medium">ค้นหาสินค้า</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="ค้นหาจากชื่อ, SKU หรือคำอธิบาย..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
               </div>
             </div>
+            <div className="lg:w-64 space-y-2">
+              <label className="text-sm font-medium">หมวดหมู่</label>
+              <Select
+                value={categoryId ? String(categoryId) : "all"}
+                onValueChange={(val) => setCategoryId(val === "all" ? undefined : Number(val))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="ทุกหมวดหมู่" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Products Data Table */}
+      <Card>
+        <DataTable columns={columns} data={items} isLoading={isLoading} />
+
+        {/* Pagination Info */}
+        {total > 20 && (
+          <div className="px-6 py-4 border-t text-sm text-muted-foreground bg-muted/20">
+            แสดง <span className="font-medium text-foreground">1</span> ถึง{" "}
+            <span className="font-medium text-foreground">20</span> จาก{" "}
+            <span className="font-medium text-foreground">{total}</span> รายการ
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Modals */}
-      {openCreate && (
-        <Modal 
-          open={openCreate} 
-          onClose={() => setOpenCreate(false)}
-          title="เพิ่มสินค้าใหม่"
-          size="xl"
-        >
-          <ProductForm
-            mode="create"
-            onSubmit={createProduct}
-            onCancel={() => setOpenCreate(false)}
-          />
-        </Modal>
-      )}
-
-      {openEdit && (
-        <Modal 
-          open={!!openEdit} 
-          onClose={() => setOpenEdit(null)}
-          title="แก้ไขสินค้า"
-          size="xl"
-        >
-          <ProductForm
-            mode="edit"
-            initial={{
-              id: openEdit.id,
-              sku: openEdit.sku,
-              barcode: openEdit.barcode ?? "",
-              name: openEdit.name,
-              description: openEdit.description || undefined,
-              costPrice: openEdit.costPrice,
-              sellPrice: openEdit.sellPrice,
-              minStockLevel: openEdit.minStockLevel,
-              stockQuantity: openEdit.stockQuantity,
-              categoryId: openEdit.category?.id ?? null,
-              branchId: openEdit.branchId,
-            }}
-            onSubmit={(data) => updateProduct(openEdit.id, data)}
-            onCancel={() => setOpenEdit(null)}
-          />
-        </Modal>
-      )}
-
-      {deleteConfirm && (
-        <Modal
-          open={!!deleteConfirm}
-          onClose={() => setDeleteConfirm(null)}
-          title="ยืนยันการลบสินค้า"
-          size="sm"
-        >
-          <div className="p-6">
-            {/* Warning Icon */}
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-8 h-8 text-red-600" />
-              </div>
-            </div>
-
-            {/* Warning Message */}
-            <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                คุณแน่ใจหรือไม่?
-              </h3>
-              <p className="text-sm text-gray-600">
-                คุณกำลังจะลบสินค้า{" "}
-                <span className="font-semibold text-gray-900">
-                  "{deleteConfirm.name}"
-                </span>
-              </p>
-              <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                  <span className="font-medium">SKU:</span>
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                    {deleteConfirm.sku}
-                  </span>
-                </div>
-                {deleteConfirm.barcode && (
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-1">
-                    <span className="font-medium">Barcode:</span>
-                    <span className="font-mono text-xs bg-gray-200 px-2 py-1 rounded">
-                      {deleteConfirm.barcode}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-red-600 mt-3 font-medium">
-                ⚠️ การลบจะไม่สามารถยกเลิกได้ และจะส่งผลต่อข้อมูลสต็อก
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={() => deleteProduct(deleteConfirm.id)}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                ลบสินค้า
-              </button>
-            </div>
+      {/* Create Dialog */}
+      <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+        <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-6 pb-4 border-b">
+            <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
+            <DialogDescription>กรอกรายละเอียดเพื่อเพิ่มสินค้าเข้าระบบคลัง</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            <ProductForm
+              mode="create"
+              onSubmit={async (data) => { await createMutation.mutateAsync(data as any); }}
+              onCancel={() => setOpenCreate(false)}
+            />
           </div>
-        </Modal>
-      )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!openEdit} onOpenChange={(open) => !open && setOpenEdit(null)}>
+        <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-6 pb-4 border-b">
+            <DialogTitle>แก้ไขสินค้า</DialogTitle>
+            <DialogDescription>แก้ไขรายละเอียดสินค้า {openEdit?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {openEdit && (
+              <ProductForm
+                mode="edit"
+                initial={{
+                  id: openEdit.id,
+                  sku: openEdit.sku,
+                  barcode: openEdit.barcode ?? "",
+                  name: openEdit.name,
+                  description: openEdit.description || undefined,
+                  costPrice: openEdit.costPrice,
+                  sellPrice: openEdit.sellPrice,
+                  minStockLevel: openEdit.minStockLevel,
+                  stockQuantity: openEdit.stockQuantity,
+                  categoryId: openEdit.category?.id ?? null,
+                  branchId: openEdit.branchId,
+                  
+                }}
+                onSubmit={async (data) => { await updateMutation.mutateAsync({ id: openEdit.id, ...data } as any); }}
+                onCancel={() => setOpenEdit(null)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" /> ยืนยันการลบสินค้า
+            </DialogTitle>
+            <DialogDescription>
+              คุณกำลังจะลบสินค้า <span className="font-semibold text-foreground">"{deleteConfirm?.name}"</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-destructive font-medium bg-destructive/10 p-3 rounded-md">
+              ⚠️ การกระทำนี้ไม่สามารถยกเลิกได้ และอาจส่งผลกระทบต่อประวัติการทำรายการ
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+              ยกเลิก
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteMutation.mutate({ id: deleteConfirm.id })}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "กำลังลบ..." : "ลบสินค้า"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-
