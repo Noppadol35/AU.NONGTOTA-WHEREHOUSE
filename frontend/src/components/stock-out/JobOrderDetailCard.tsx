@@ -1,6 +1,12 @@
 "use client";
 import { useState } from "react";
-import { Trash2, Car, Phone, User, ShieldCheck } from "lucide-react";
+import { Trash2, Car, Phone, User, ShieldCheck, ClipboardList, Package } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 type JobOrderItem = {
   id: number;
@@ -8,7 +14,7 @@ type JobOrderItem = {
   product?: {
     id: number;
     name: string;
-    sku: string
+    sku: string;
   } | null;
 };
 
@@ -33,221 +39,165 @@ type Props = {
 
 export default function JobOrderDetailCard({ jobOrder, onItemDelete }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<null | { itemId: number; name: string }>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'COMPLETED': return 'bg-green-100 text-green-800';
-      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800';
-      case 'CANCELLED': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "COMPLETED": return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">เสร็จสิ้น</Badge>;
+      case "IN_PROGRESS": return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">กำลังดำเนินการ</Badge>;
+      case "CANCELLED": return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">ยกเลิก</Badge>;
+      case "OPEN": return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">เปิดงาน</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return 'เสร็จสิ้น';
-      case 'IN_PROGRESS': return 'กำลังดำเนินการ';
-      case 'CANCELLED': return 'ยกเลิก';
-      case 'OPEN': return 'เปิดงาน';
-      default: return status;
-    }
-  };
+  const infoItems = [
+    { icon: User, label: "ลูกค้า", value: jobOrder.customerName, color: "bg-blue-100 text-blue-600" },
+    { icon: Phone, label: "เบอร์โทร", value: jobOrder.phoneNumber, color: "bg-green-100 text-green-600" },
+    { icon: Car, label: "ประเภทรถ", value: jobOrder.carType, color: "bg-purple-100 text-purple-600" },
+    { icon: ShieldCheck, label: "ทะเบียน", value: jobOrder.licensePlate, color: "bg-orange-100 text-orange-600" },
+  ];
 
   return (
     <>
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">รายละเอียดงาน #{jobOrder.jobNumber}</h3>
-            <p className="text-sm text-gray-600 mt-1">ข้อมูลงานและประวัติการเบิกสินค้า</p>
+      <Card className="border-none shadow-lg">
+        <CardHeader className="pb-4 border-b border-gray-100/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">รายละเอียดงาน #{jobOrder.jobNumber}</CardTitle>
+              <CardDescription>ข้อมูลงานและประวัติการเบิกสินค้า</CardDescription>
+            </div>
+            {getStatusBadge(jobOrder.status)}
           </div>
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(jobOrder.status)}`}>
-            {getStatusText(jobOrder.status)}
-          </span>
-        </div>
-        
-        {/* Job Order Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <User />
-                </svg>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-6">
+          {/* Info Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {infoItems.map((item) => (
+              <div key={item.label} className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color.split(" ")[0]}`}>
+                  <item.icon className={`w-5 h-5 ${item.color.split(" ")[1]}`} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
+                  <p className="font-semibold text-gray-900 text-sm">{item.value}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">ลูกค้า</p>
-                <p className="font-semibold text-gray-900">{jobOrder.customerName}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <Phone />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">เบอร์โทร</p>
-                <p className="font-semibold text-gray-900">{jobOrder.phoneNumber}</p>
-              </div>
-            </div>
+            ))}
           </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <Car />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">ประเภทรถ</p>
-                <p className="font-semibold text-gray-900">{jobOrder.carType}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <ShieldCheck />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">ทะเบียน</p>
-                <p className="font-semibold text-gray-900">{jobOrder.licensePlate}</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Job Details */}
-        {(jobOrder.issueDetail || jobOrder.jobDetail) && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-            {jobOrder.issueDetail && (
-              <div className="mb-3">
-                <p className="text-sm font-medium text-gray-700 mb-1">อาการเสีย:</p>
-                <p className="text-gray-900">{jobOrder.issueDetail}</p>
-              </div>
-            )}
-            {jobOrder.jobDetail && (
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">รายละเอียดงาน:</p>
-                <p className="text-gray-900">{jobOrder.jobDetail}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Creation Date */}
-        <div className="text-xs text-gray-500 mb-6">
-          สร้างเมื่อ: {new Date(jobOrder.createdAt).toLocaleString('th-TH')}
-        </div>
-
-        {/* Consumption History */}
-        {jobOrder.items && jobOrder.items.length > 0 && (
-          <div className="border-t border-gray-200 pt-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <h4 className="text-lg font-semibold text-gray-900">ประวัติการเบิกสินค้า</h4>
+          {/* Job Details */}
+          {(jobOrder.issueDetail || jobOrder.jobDetail) && (
+            <div className="p-4 bg-gray-50/80 rounded-xl space-y-3">
+              {jobOrder.issueDetail && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">อาการเสีย</p>
+                  <p className="text-sm text-gray-900">{jobOrder.issueDetail}</p>
+                </div>
+              )}
+              {jobOrder.jobDetail && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">รายละเอียดงาน</p>
+                  <p className="text-sm text-gray-900">{jobOrder.jobDetail}</p>
+                </div>
+              )}
             </div>
-            
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อสินค้า</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จำนวน</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">จัดการ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
+          )}
+
+          <div className="text-xs text-muted-foreground">
+            สร้างเมื่อ: {new Date(jobOrder.createdAt).toLocaleString("th-TH")}
+          </div>
+
+          <Separator />
+
+          {/* Consumption History */}
+          {jobOrder.items && jobOrder.items.length > 0 ? (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <ClipboardList className="w-5 h-5 text-indigo-600" />
+                <h4 className="font-semibold text-gray-900">ประวัติการเบิกสินค้า</h4>
+                <Badge variant="secondary" className="ml-auto">{jobOrder.items.length} รายการ</Badge>
+              </div>
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-gray-50/80">
+                    <TableRow>
+                      <TableHead className="pl-4">SKU</TableHead>
+                      <TableHead>ชื่อสินค้า</TableHead>
+                      <TableHead className="text-center w-[100px]">จำนวน</TableHead>
+                      <TableHead className="text-right w-[60px] pr-4"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {jobOrder.items.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {item.product?.sku || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {item.product?.name || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {item.qty} ชิ้น
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            className="p-2 rounded-lg hover:bg-red-100 transition-colors group"
-                            onClick={() => setConfirmDelete({ itemId: item.id, name: item.product?.name || '-' })}
-                            aria-label="ลบรายการนี้"
+                      <TableRow key={item.id} className="hover:bg-gray-50/50">
+                        <TableCell className="font-mono text-sm pl-4">{item.product?.sku || "-"}</TableCell>
+                        <TableCell className="text-sm">{item.product?.name || "-"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">{item.qty} ชิ้น</Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-4">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setConfirmDelete({ itemId: item.id, name: item.product?.name || "-" })}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 rounded-full"
                           >
-                            <Trash2 size={16} className="text-red-600 group-hover:text-red-700" />
-                          </button>
-                        </td>
-                      </tr>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {(!jobOrder.items || jobOrder.items.length === 0) && (
-          <div className="border-t border-gray-200 pt-6">
+          ) : (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
+              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Package className="w-8 h-8 text-gray-300" />
               </div>
-              <p className="text-gray-500 text-sm">ยังไม่มีประวัติการเบิกสินค้า</p>
-              <p className="text-gray-400 text-xs">สินค้าที่เบิกจะแสดงที่นี่</p>
+              <p className="text-gray-500 text-sm font-medium">ยังไม่มีประวัติการเบิกสินค้า</p>
+              <p className="text-gray-400 text-xs mt-1">สินค้าที่เบิกจะแสดงที่นี่</p>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Confirm Delete Modal */}
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded shadow-lg max-w-sm w-full p-4">
-            <div className="font-semibold text-gray-900 mb-2">ยืนยันการลบ</div>
-            <p className="text-sm text-gray-700 mb-4">
-              ต้องการลบ &ldquo;{confirmDelete.name}&rdquo; ออกจากประวัติการเบิกหรือไม่? สต็อกจะถูกคืนกลับอัตโนมัติ
-            </p>
-            <div className="flex justify-end gap-2">
-              <button 
-                className="px-3 py-2 border rounded" 
-                onClick={() => setConfirmDelete(null)}
-              >
-                ยกเลิก
-              </button>
-              <button
-                className="px-3 py-2 bg-red-600 text-white rounded"
-                onClick={async () => {
-                  try {
-                    await onItemDelete(confirmDelete.itemId);
-                    setConfirmDelete(null);
-                  } catch (err) {
-                    console.error("Failed to delete item:", err);
-                  }
-                }}
-              >
-                ลบรายการ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirm Delete Dialog */}
+      <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>ยืนยันการลบ</DialogTitle>
+            <DialogDescription>
+              ต้องการลบ &ldquo;{confirmDelete?.name}&rdquo; ออกจากประวัติการเบิกหรือไม่? สต็อกจะถูกคืนกลับอัตโนมัติ
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmDelete(null)} disabled={isDeleting}>
+              ยกเลิก
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={async () => {
+                if (!confirmDelete) return;
+                setIsDeleting(true);
+                try {
+                  await onItemDelete(confirmDelete.itemId);
+                  setConfirmDelete(null);
+                } catch (err) {
+                  console.error("Failed to delete item:", err);
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+            >
+              ลบรายการ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
