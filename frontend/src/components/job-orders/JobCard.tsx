@@ -1,4 +1,7 @@
 import { User, Phone, Car, Hash, ArrowRight } from "lucide-react";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface JobOrder {
   id: number;
@@ -25,10 +28,10 @@ interface JobOrder {
     };
   }>;
   // ข้อมูลการเงิน
-  subtotal?: number;        // ยอดรวมสินค้า
-  laborCost?: number;       // ค่าแรง
-  vatAmount?: number;       // ภาษีมูลค่าเพิ่ม
-  grandTotal?: number;      // ยอดรวมทั้งหมด
+  subtotal?: number;
+  laborCost?: number;
+  vatAmount?: number;
+  grandTotal?: number;
 }
 
 interface JobCardProps {
@@ -36,110 +39,89 @@ interface JobCardProps {
   onCardClick: (job: JobOrder) => void;
 }
 
-export default function JobCard({ job, onCardClick }: JobCardProps) {
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case "PENDING":
-      case "OPEN":
-        return {
-          label: "เปิดงาน",
-          color: "bg-orange-100 text-orange-800 border-orange-200",
-          bgColor: "bg-orange-50",
-        };
-      case "IN_PROGRESS":
-        return {
-          label: "กำลังดำเนินการ",
-          color: "bg-blue-100 text-blue-800 border-blue-200",
-          bgColor: "bg-blue-50",
-        };
-      case "COMPLETED":
-        return {
-          label: "เสร็จสิ้น",
-          color: "bg-green-100 text-green-800 border-green-200",
-          bgColor: "bg-green-50",
-        };
-      default:
-        return {
-          label: status,
-          color: "bg-gray-100 text-gray-800 border-gray-200",
-          bgColor: "bg-gray-50",
-        };
-    }
-  };
+const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  PENDING: { label: "เปิดงาน", variant: "outline" },
+  OPEN: { label: "เปิดงาน", variant: "outline" },
+  IN_PROGRESS: { label: "กำลังดำเนินการ", variant: "default" },
+  COMPLETED: { label: "เสร็จสิ้น", variant: "secondary" },
+};
 
-  const statusInfo = getStatusInfo(job.status);
+export default function JobCard({ job, onCardClick }: JobCardProps) {
+  const status = statusConfig[job.status] ?? { label: job.status, variant: "outline" as const };
+
+  // Dynamic border-left color based on status
+  const borderLeftColor =
+    job.status === "IN_PROGRESS"
+      ? "border-l-blue-500"
+      : job.status === "COMPLETED"
+        ? "border-l-green-500"
+        : "border-l-orange-500";
 
   return (
-    <div
-      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer hover:border-gray-300"
+    <Card
+      className={`border-l-4 ${borderLeftColor} hover:shadow-md transition-all duration-200 cursor-pointer group`}
       onClick={() => onCardClick(job)}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">
-            #{job.jobNumber}
-          </h3>
-          <div
-            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}
-          >
-            {statusInfo.label}
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold text-foreground truncate">
+              #{job.jobNumber}
+            </h3>
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <Badge variant={status.variant}>{status.label}</Badge>
           </div>
         </div>
-        <div className="text-xs text-gray-500 text-right ml-2">
+        <p className="text-xs text-muted-foreground">
           {new Date(job.createdAt).toLocaleDateString("th-TH", {
+            year: "numeric",
             month: "short",
             day: "numeric",
           })}
-        </div>
-      </div>
+        </p>
+      </CardHeader>
 
-      {/* Job Details */}
-      <div className="space-y-3 mb-4">
-        <div className="flex items-center gap-2">
-          <User className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-600">{job.customerName}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Phone className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-600">{job.phoneNumber}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Car className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-600">{job.carType}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Hash className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-600">{job.licensePlate}</span>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="pt-4 border-t border-gray-100">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">คลิกเพื่อดูรายละเอียด</span>
-          <svg
-            className="w-4 h-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <ArrowRight className="w-4 h-4" />
-          </svg>
-        </div>
-        
-        {/* Financial Information */}
-        {job.grandTotal && (
-          <div className="pt-2 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">ยอดรวม:</span>
-              <span className="text-sm font-bold text-green-600">
-                ฿{job.grandTotal.toLocaleString()}
-              </span>
-            </div>
+      <CardContent className="pb-3">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm text-foreground truncate">{job.customerName}</span>
           </div>
-        )}
-      </div>
-    </div>
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm text-muted-foreground">{job.phoneNumber}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Car className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm text-muted-foreground">{job.carType}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Hash className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm text-muted-foreground font-mono">{job.licensePlate}</span>
+          </div>
+        </div>
+      </CardContent>
+
+      <Separator />
+
+      <CardFooter className="pt-3 pb-3">
+        <div className="flex items-center justify-between w-full">
+          {job.grandTotal ? (
+            <>
+              <span className="text-xs text-muted-foreground">ยอดรวม</span>
+              <span className="text-sm font-bold text-green-600">
+                ฿{job.grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-xs text-muted-foreground">ดูรายละเอียด</span>
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </>
+          )}
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

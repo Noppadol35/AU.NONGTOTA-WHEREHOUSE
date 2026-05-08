@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   Edit2,
   Trash2,
@@ -15,8 +15,30 @@ import {
   AlertTriangle,
   Loader2,
   RefreshCw,
+  Package,
 } from "lucide-react";
 import JobOrderForm, { JobOrderInput } from "./JobOrderForm";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type JobOrderDetailType = {
   id: number;
@@ -30,17 +52,11 @@ export type JobOrderDetailType = {
   status: string;
   createdAt: string;
   branchId?: number;
-  branch?: {
-    name: string;
-  };
+  branch?: { name: string };
   items?: Array<{
     id: number;
     qty: number;
-    product: {
-      id: number;
-      name: string;
-      sku: string;
-    };
+    product: { id: number; name: string; sku: string };
   }>;
 };
 
@@ -51,569 +67,324 @@ type Props = {
   onDelete: () => Promise<void>;
 };
 
-export default function JobOrderDetail({
-  jobOrder,
-  onClose,
-  onEdit,
-  onDelete,
-}: Props) {
+// ── Status config ────────────────────────────────────────────────────────────
+const STATUS_MAP: Record<string, { label: string; variant: "outline" | "default" | "secondary" | "destructive"; icon: typeof Clock }> = {
+  PENDING:     { label: "เปิดงาน",           variant: "outline",      icon: Clock },
+  OPEN:        { label: "เปิดงาน",           variant: "outline",      icon: Clock },
+  IN_PROGRESS: { label: "กำลังดำเนินการ",     variant: "default",      icon: Wrench },
+  COMPLETED:   { label: "เสร็จสิ้น",          variant: "secondary",    icon: CheckCircle },
+  CANCELLED:   { label: "ยกเลิก",            variant: "destructive",  icon: XCircle },
+};
+
+const DEFAULT_STATUS = { label: "ไม่ทราบ", variant: "outline" as const, icon: AlertTriangle };
+
+// ── Component ────────────────────────────────────────────────────────────────
+export default function JobOrderDetail({ jobOrder, onClose, onEdit, onDelete }: Props) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showEditConfirm, setShowEditConfirm] = useState(false);
-  const [pendingEditData, setPendingEditData] = useState<JobOrderInput | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentJobOrder, setCurrentJobOrder] =
-    useState<JobOrderDetailType>(jobOrder);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentJobOrder, setCurrentJobOrder] = useState<JobOrderDetailType>(jobOrder);
 
-  // Debug: Log when component renders
-  console.log(
-    "🔍 JobOrderDetail: Component rendered with currentJobOrder:",
-    currentJobOrder
-  );
-  console.log("🔍 JobOrderDetail: Props jobOrder:", jobOrder);
+  const utils = trpc.useUtils();
 
-  // Ensure currentJobOrder is initialized with jobOrder if it's null
-  useEffect(() => {
-    if (!currentJobOrder && jobOrder) {
-      console.log(
-        "🔍 JobOrderDetail: Initializing currentJobOrder with jobOrder props"
-      );
-      setCurrentJobOrder(jobOrder);
+  // ── Refresh data ─────────────────────────────────────────────────────────
+  const refreshData = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const freshData = await utils.jobOrders.getById.fetch({ id: currentJobOrder.id });
+      if (freshData) setCurrentJobOrder(freshData as JobOrderDetailType);
+    } catch (error) {
+      console.error("Error refreshing:", error);
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [currentJobOrder, jobOrder]);
+  }, [currentJobOrder.id, utils.jobOrders.getById]);
 
-  // Function to trigger refresh
-  const triggerRefresh = () => {
-    console.log("🔍 JobOrderDetail: Triggering refresh...");
-    setRefreshTrigger((prev) => prev + 1);
-  };
-
-  // Effect to refresh data when trigger changes
-  useEffect(() => {
-    if (refreshTrigger > 0 && currentJobOrder?.id) {
-      console.log(
-        "🔍 JobOrderDetail: Refresh triggered, fetching fresh data..."
-      );
-
-      const fetchFreshData = async () => {
-        try {
-          const API_URL =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-          const response = await fetch(
-            `${API_URL}/job-orders/${currentJobOrder.id}`,
-            {
-              credentials: "include",
-            }
-          );
-
-          if (response.ok) {
-            const freshData = await response.json();
-            console.log("🔍 JobOrderDetail: Fresh data fetched:", freshData);
-            setCurrentJobOrder(freshData);
-            console.log("🔍 JobOrderDetail: State updated with fresh data");
-          } else {
-            console.warn("🔍 JobOrderDetail: Failed to fetch fresh data");
-          }
-        } catch (error) {
-          console.error("🔍 JobOrderDetail: Error fetching fresh data:", error);
-        }
-      };
-
-      fetchFreshData();
-    }
-  }, [refreshTrigger, currentJobOrder?.id]);
-
-  async function handleEdit(data: JobOrderInput) {
-    setPendingEditData(data);
-    setShowEditConfirm(true);
-  }
-
-  async function confirmDelete() {
-    setIsLoading(true);
+  // ── Delete ───────────────────────────────────────────────────────────────
+  const confirmDelete = async () => {
+    setIsDeleting(true);
     try {
       await onDelete();
       setShowDeleteConfirm(false);
       onClose();
     } catch (error) {
-      console.error("Error deleting job order:", error);
+      console.error("Error deleting:", error);
     } finally {
-      setIsLoading(false);
-    }
-  }
-
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case "PENDING":
-      case "OPEN":
-        return {
-          label: "เปิดงาน",
-          color: "bg-orange-100 text-orange-800 border-orange-200",
-          icon: <Clock className="w-4 h-4" />,
-          bgColor: "bg-orange-50",
-        };
-      case "IN_PROGRESS":
-        return {
-          label: "กำลังดำเนินการ",
-          color: "bg-blue-100 text-blue-800 border-blue-200",
-          icon: <Wrench className="w-4 h-4" />,
-          bgColor: "bg-blue-50",
-        };
-      case "COMPLETED":
-        return {
-          label: "เสร็จสิ้น",
-          color: "bg-green-100 text-green-800 border-green-200",
-          icon: <CheckCircle className="w-4 h-4" />,
-          bgColor: "bg-green-50",
-        };
-      case "CANCELLED":
-        return {
-          label: "ยกเลิก",
-          color: "bg-red-100 text-red-800 border-red-200",
-          icon: <XCircle className="w-4 h-4" />,
-          bgColor: "bg-red-50",
-        };
-      default:
-        return {
-          label: status,
-          color: "bg-gray-100 text-gray-800 border-gray-200",
-          icon: <AlertTriangle className="w-4 h-4" />,
-          bgColor: "bg-gray-50",
-        };
+      setIsDeleting(false);
     }
   };
 
-  // Add null check for currentJobOrder
-  if (!currentJobOrder) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-          </div>
-          <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
-  }
+  // ── Status badge ─────────────────────────────────────────────────────────
+  const status = STATUS_MAP[currentJobOrder.status] ?? DEFAULT_STATUS;
+  const StatusIcon = status.icon;
 
-  const statusInfo = getStatusInfo(currentJobOrder.status);
-
+  // ══════════════════════════════════════════════════════════════════════════
+  // EDIT MODE
+  // ══════════════════════════════════════════════════════════════════════════
   if (mode === "edit") {
     return (
-      <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 animate-in slide-in-from-right-2 duration-300">
-        <div className="flex items-center justify-between pb-4 md:pb-6 border-b border-gray-200">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-            แก้ไขงานสั่งทำ
-          </h2>
-          <button
-            onClick={() => setMode("view")}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <JobOrderForm
-          mode="edit"
-          initial={jobOrder}
-          onSubmit={handleEdit}
-          onCancel={() => setMode("view")}
-          submitLabel="บันทึกการแก้ไข"
-          onSuccess={async (data) => {
-            // Trigger refresh after successful update
-            triggerRefresh();
-
-            console.log("🔍 JobOrderDetail: onSuccess called with data:", data);
-            console.log("🔍 JobOrderDetail: Previous state:", currentJobOrder);
-
-            try {
-              // Fetch fresh data from database to ensure all fields are updated
-              console.log(
-                "🔍 JobOrderDetail: Fetching fresh data from database..."
-              );
-
-              if (!currentJobOrder?.id) {
-                console.error(
-                  "🔍 JobOrderDetail: currentJobOrder.id is undefined, cannot fetch fresh data"
-                );
-                return;
-              }
-
-              const API_URL =
-                process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-              const response = await fetch(
-                `${API_URL}/job-orders/${currentJobOrder.id}`,
-                {
-                  credentials: "include",
-                }
-              );
-
-              if (response.ok) {
-                const freshData = await response.json();
-
-                // Update with complete data from database
-                setCurrentJobOrder(freshData.item);
-                console.log(
-                  "🔍 JobOrderDetail: State updated with fresh data from database"
-                );
-              } else {
-                console.warn(
-                  "🔍 JobOrderDetail: Failed to fetch fresh data, using local update"
-                );
-                // Fallback: update with local data
-                if (currentJobOrder) {
-                  const updatedJobOrder = {
-                    ...currentJobOrder,
-                    ...data,
-                  };
-                  setCurrentJobOrder(updatedJobOrder);
-                }
-              }
-            } catch (error) {
-              console.error(
-                "🔍 JobOrderDetail: Error fetching fresh data:",
-                error
-              );
-              // Fallback: update with local data
-              if (currentJobOrder) {
-                const updatedJobOrder = {
-                  ...currentJobOrder,
-                  ...data,
-                };
-                setCurrentJobOrder(updatedJobOrder);
-              }
-            }
-          }}
-        />
-      </div>
+      <JobOrderForm
+        mode="edit"
+        initial={jobOrder}
+        onSubmit={onEdit}
+        onCancel={() => setMode("view")}
+        submitLabel="บันทึกการแก้ไข"
+        onSuccess={async () => {
+          await refreshData();
+          setMode("view");
+        }}
+      />
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // VIEW MODE
+  // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-      {/* Header */}
-      <div className="space-y-4 pb-6 md:pb-8 border-b border-gray-200">
-        {/* Job Info & Close Button */}
+    <div className="space-y-6">
+      {/* ═══════ HEADER ═══════ */}
+      <div className="space-y-4">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
-              <FileText className="w-6 h-6 md:w-8 md:h-8 text-white" />
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+              <FileText className="w-6 h-6 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 md:mb-2 truncate">
+              <h2 className="text-2xl font-bold text-foreground truncate">
                 #{currentJobOrder.jobNumber}
               </h2>
-              <p className="text-sm md:text-base lg:text-lg text-gray-600">
-                งานสั่งทำรถยนต์
+              <p className="text-muted-foreground">งานสั่งทำรถยนต์</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
+           
+          </Button>
+        </div>
+
+        {/* Status + Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <Badge variant={status.variant} className="gap-1.5 w-fit text-sm px-3 py-1">
+            <StatusIcon className="w-3.5 h-3.5" />
+            {status.label}
+          </Badge>
+
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setMode("edit")} className="gap-1.5">
+              <Edit2 className="w-3.5 h-3.5" />
+              แก้ไข
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshData}
+              disabled={isRefreshing}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              รีเฟรช
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="gap-1.5 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              ลบ
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* ═══════ CONTENT ═══════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Customer Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <User className="w-4 h-4 text-muted-foreground" />
+              ข้อมูลลูกค้า
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoRow label="ชื่อลูกค้า" value={currentJobOrder.customerName} />
+            <Separator />
+            <InfoRow label="เบอร์โทรศัพท์" value={currentJobOrder.phoneNumber} />
+          </CardContent>
+        </Card>
+
+        {/* Vehicle Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Car className="w-4 h-4 text-muted-foreground" />
+              ข้อมูลรถยนต์
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoRow label="ประเภทรถ" value={currentJobOrder.carType} />
+            <Separator />
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">เลขทะเบียน</span>
+              <Badge variant="outline" className="font-mono font-bold">
+                {currentJobOrder.licensePlate}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Job Details */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-muted-foreground" />
+              รายละเอียดงาน
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {currentJobOrder.issueDetail && (
+              <DetailBlock label="ปัญหาที่พบ" text={currentJobOrder.issueDetail} />
+            )}
+            {currentJobOrder.jobDetail && (
+              <DetailBlock label="งานที่จะทำ" text={currentJobOrder.jobDetail} />
+            )}
+            {!currentJobOrder.issueDetail && !currentJobOrder.jobDetail && (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                ไม่มีรายละเอียดเพิ่มเติม
               </p>
-            </div>
-          </div>
+            )}
+          </CardContent>
+        </Card>
 
-          <button
-            onClick={onClose}
-            className="p-2 md:p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg md:rounded-xl transition-all duration-200 hover:shadow-sm flex-shrink-0"
-          >
-            <X size={20} className="md:hidden" />
-            <X size={24} className="hidden md:block" />
-          </button>
-        </div>
-
-        {/* Status Badge */}
-        <div
-          className={`inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 rounded-full border-2 ${statusInfo.color} ${statusInfo.bgColor} shadow-sm transition-all duration-200 hover:shadow-md`}
-        >
-          {statusInfo.icon}
-          <span className="font-semibold text-sm md:text-base">
-            {statusInfo.label}
-          </span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => setMode("edit")}
-            className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg md:rounded-xl transition-all duration-200 font-medium hover:shadow-sm border border-blue-200 text-sm md:text-base"
-          >
-            <Edit2 size={16} className="md:hidden" />
-            <Edit2 size={18} className="hidden md:block" />
-            แก้ไข
-          </button>
-          <button
-            onClick={triggerRefresh}
-            className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg md:rounded-xl transition-all duration-200 font-medium hover:shadow-sm border border-green-200 text-sm md:text-base"
-            title="รีเฟรชข้อมูล"
-          >
-            <RefreshCw size={16} className="md:hidden" />
-            <RefreshCw size={18} className="hidden md:block" />
-            รีเฟรช
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg md:rounded-xl transition-all duration-200 font-medium hover:shadow-sm border border-red-200 text-sm md:text-base"
-          >
-            <Trash2 size={16} className="md:hidden" />
-            <Trash2 size={18} className="hidden md:block" />
-            ลบ
-          </button>
-        </div>
+        {/* Metadata */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              ข้อมูลเพิ่มเติม
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoRow
+              label="วันที่สร้าง"
+              value={new Date(currentJobOrder.createdAt).toLocaleDateString("th-TH", {
+                year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+              })}
+            />
+            <Separator />
+            <InfoRow label="สาขา" value={currentJobOrder.branch?.name || "สาขาหลัก"} />
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Main Content - Simplified Information */}
-      <div className="space-y-6">
-        {/* Information Card */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="p-4 md:p-6 border-b border-gray-100">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900">
-              รายละเอียดงานสั่งทำ
-            </h3>
-          </div>
-
-          <div className="p-4 md:p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              {/* Left Column */}
-              <div className="space-y-6">
-                {/* Customer Information */}
-                <div>
-                  <h4 className="text-sm md:text-base font-medium text-gray-900 mb-3 flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-600" />
-                    ข้อมูลลูกค้า
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-1 sm:gap-0">
-                      <span className="text-xs md:text-sm text-gray-600">
-                        ชื่อลูกค้า
-                      </span>
-                      <span className="text-sm md:text-sm font-medium text-gray-900 break-words">
-                        {currentJobOrder.customerName}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-t border-gray-50 gap-1 sm:gap-0">
-                      <span className="text-xs md:text-sm text-gray-600">
-                        เบอร์โทรศัพท์
-                      </span>
-                      <span className="text-sm md:text-sm font-medium text-gray-900 font-mono">
-                        {currentJobOrder.phoneNumber}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Vehicle Information */}
-                <div>
-                  <h4 className="text-sm md:text-base font-medium text-gray-900 mb-3 flex items-center gap-2">
-                    <Car className="w-4 h-4 text-gray-600" />
-                    ข้อมูลรถยนต์
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-1 sm:gap-0">
-                      <span className="text-xs md:text-sm text-gray-600">
-                        ประเภทรถ
-                      </span>
-                      <span className="text-sm md:text-sm font-medium text-gray-900 break-words">
-                        {currentJobOrder.carType}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-t border-gray-50 gap-1 sm:gap-0">
-                      <span className="text-xs md:text-sm text-gray-600">
-                        เลขทะเบียน
-                      </span>
-                      <span className="text-sm md:text-sm font-mono font-bold text-gray-900 bg-gray-50 px-2 py-1 rounded inline-block">
-                        {currentJobOrder.licensePlate}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-6">
-                {/* Job Details */}
-                <div>
-                  <h4 className="text-sm md:text-base font-medium text-gray-900 mb-3 flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-gray-600" />
-                    รายละเอียดงาน
-                  </h4>
-                  <div className="space-y-4">
-                    {currentJobOrder.issueDetail && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">
-                          ปัญหาที่พบ
-                        </p>
-                        <p className="text-xs md:text-sm text-gray-900 bg-gray-50 p-3 rounded border-l-4 border-gray-300 leading-relaxed break-words">
-                          {currentJobOrder.issueDetail}
-                        </p>
-                      </div>
-                    )}
-
-                    {currentJobOrder.jobDetail && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">
-                          งานที่จะทำ
-                        </p>
-                        <p className="text-xs md:text-sm text-gray-900 bg-gray-50 p-3 rounded border-l-4 border-gray-300 leading-relaxed break-words">
-                          {currentJobOrder.jobDetail}
-                        </p>
-                      </div>
-                    )}
-
-                    {!currentJobOrder.issueDetail &&
-                      !currentJobOrder.jobDetail && (
-                        <div className="text-center py-6 md:py-8 text-gray-500">
-                          <p className="text-xs md:text-sm">
-                            ไม่มีรายละเอียดเพิ่มเติม
-                          </p>
-                        </div>
-                      )}
-                  </div>
-                </div>
-
-                {/* Metadata */}
-                <div>
-                  <h4 className="text-sm md:text-base font-medium text-gray-900 mb-3 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-600" />
-                    ข้อมูลเพิ่มเติม
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-1 sm:gap-0">
-                      <span className="text-xs md:text-sm text-gray-600">
-                        วันที่สร้าง
-                      </span>
-                      <span className="text-xs md:text-sm font-medium text-gray-900">
-                        {new Date(currentJobOrder.createdAt).toLocaleDateString(
-                          "th-TH",
-                          {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-t border-gray-50 gap-1 sm:gap-0">
-                      <span className="text-xs md:text-sm text-gray-600">
-                        สาขา
-                      </span>
-                      <span className="text-xs md:text-sm font-medium text-gray-900 break-words">
-                        {currentJobOrder.branch?.name || "Main Branch"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Items Section (if exists) */}
+      {/* ═══════ ITEMS TABLE ═══════ */}
       {currentJobOrder.items && currentJobOrder.items.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="p-4 md:p-6 border-b border-gray-100">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Package className="w-4 h-4 text-muted-foreground" />
               รายการสินค้า
-            </h3>
-          </div>
-
-          {/* Mobile Card Layout */}
-          <div className="block md:hidden">
-            <div className="p-4 space-y-3">
+              <Badge variant="secondary" className="ml-auto">
+                {currentJobOrder.items.length} รายการ
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Mobile */}
+            <div className="block md:hidden space-y-3">
               {currentJobOrder.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-gray-50 rounded-lg p-4 space-y-2"
-                >
+                <div key={item.id} className="bg-muted rounded-lg p-4 space-y-2">
                   <div className="flex justify-between items-start">
-                    <span className="text-sm font-medium text-gray-900 flex-1 pr-2">
-                      {item.product.name}
-                    </span>
-                    <span className="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded flex-shrink-0">
-                      {item.qty}
-                    </span>
+                    <span className="text-sm font-medium flex-1 pr-2">{item.product.name}</span>
+                    <Badge>{item.qty}</Badge>
                   </div>
-                  <div className="text-xs text-gray-600 font-mono">
-                    SKU: {item.product.sku}
-                  </div>
+                  <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Desktop Table Layout */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    สินค้า
-                  </th>
-                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SKU
-                  </th>
-                  <th className="px-4 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    จำนวน
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentJobOrder.items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 md:px-6 py-4 text-sm text-gray-900">
-                      {item.product.name}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-sm text-gray-600 font-mono">
-                      {item.product.sku}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-center text-sm font-medium text-gray-900">
-                      {item.qty}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
-          <div className="bg-white rounded-lg md:rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg md:text-xl font-semibold text-red-600 mb-3 md:mb-4">
-              ยืนยันการลบ
-            </h3>
-            <p className="text-gray-600 mb-6 md:mb-8 text-sm md:text-base">
-              คุณต้องการลบงานสั่งทำนี้หรือไม่? การดำเนินการนี้ไม่สามารถยกเลิกได้
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isLoading}
-                className="flex-1 px-4 md:px-6 py-2 md:py-3 border border-gray-300 text-gray-700 rounded-lg md:rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 font-medium text-sm md:text-base"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={isLoading}
-                className="flex-1 px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white rounded-lg md:rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-medium text-sm md:text-base"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                    กำลังลบ...
-                  </>
-                ) : (
-                  "ลบ"
-                )}
-              </button>
+            {/* Desktop */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>สินค้า</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead className="text-center">จำนวน</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentJobOrder.items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.product.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.product.sku}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary">{item.qty}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* ═══════ DELETE DIALOG ═══════ */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">ยืนยันการลบ</DialogTitle>
+            <DialogDescription>
+              คุณต้องการลบงานสั่งทำ #{currentJobOrder.jobNumber} หรือไม่?
+              การดำเนินการนี้ไม่สามารถยกเลิกได้
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+              ยกเลิก
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting} className="gap-2">
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  กำลังลบ...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  ลบ
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ── Reusable sub-components ──────────────────────────────────────────────────
+
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={`text-sm font-medium ${mono ? "font-mono" : ""}`}>{value}</span>
+    </div>
+  );
+}
+
+function DetailBlock({ label, text }: { label: string; text: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">{label}</p>
+      <p className="text-sm bg-muted p-3 rounded-md border-l-4 border-muted-foreground/30 leading-relaxed">
+        {text}
+      </p>
     </div>
   );
 }

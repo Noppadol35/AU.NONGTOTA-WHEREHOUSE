@@ -14,5 +14,4 @@ export type { JobOrderDetailType } from './JobOrderDetail';
 export type { JobOrderInput } from './JobOrderForm';
 
 // Export Billing Service
-export { default as billingService } from '../../services/billingService';
-export type { BillingData, BillingResponse } from '../../services/billingService';
+

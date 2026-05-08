@@ -1,4 +1,7 @@
 import JobCard from "./JobCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { LucideIcon } from "lucide-react";
 
 interface JobOrder {
   id: number;
@@ -24,11 +27,10 @@ interface JobOrder {
       sku: string;
     };
   }>;
-  // ข้อมูลการเงิน
-  subtotal?: number;        // ยอดรวมสินค้า
-  laborCost?: number;       // ค่าแรง
-  vatAmount?: number;       // ภาษีมูลค่าเพิ่ม
-  grandTotal?: number;      // ยอดรวมทั้งหมด
+  subtotal?: number;
+  laborCost?: number;
+  vatAmount?: number;
+  grandTotal?: number;
 }
 
 interface JobSectionProps {
@@ -43,7 +45,7 @@ interface JobSectionProps {
   borderColor: string;
   bgColor: string;
   textColor: string;
-  icon: string;
+  icon: LucideIcon | string;
 }
 
 export default function JobSection({
@@ -53,54 +55,50 @@ export default function JobSection({
   onCardClick,
   emptyMessage,
   emptySubMessage,
-  gradientFrom,
-  gradientTo,
-  borderColor,
   bgColor,
   textColor,
   icon,
 }: JobSectionProps) {
   return (
-    <div className="relative">
-      {/* Section Divider Line */}
-      <div
-        className={`absolute left-0 top-0 w-1 h-full bg-gradient-to-b ${gradientFrom} ${gradientTo} rounded-full`}
-      ></div>
-
-      <div className="ml-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div
-          className={`bg-gradient-to-r ${gradientFrom} ${gradientTo} border-b ${borderColor} px-6 py-5`}
-        >
-          <div className="flex items-center gap-4">
-            <div className={`w-5 h-5 ${bgColor} rounded-full shadow-sm`}></div>
-            <h2 className={`text-2xl font-bold ${textColor}`}>{title}</h2>
-            <span
-              className={`${bgColor} text-white px-4 py-2 rounded-full text-sm font-semibold`}
-            >
-              {jobs.length} งาน
-            </span>
+    <Card className="overflow-hidden">
+      <CardHeader className="bg-muted/50 border-b pb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 ${bgColor} rounded-lg flex items-center justify-center shadow-sm`}>
+            {typeof icon === "string" ? (
+              <span className="text-sm">{icon}</span>
+            ) : (
+              (() => { const Icon = icon; return <Icon className="w-4 h-4 text-white" />; })()
+            )}
           </div>
-          <p className={`${textColor} mt-2 ml-9`}>{description}</p>
+          <div className="flex-1">
+            <CardTitle className={`text-lg ${textColor}`}>{title}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+          </div>
+          <Badge variant="secondary" className="text-sm px-3 py-1">
+            {jobs.length} งาน
+          </Badge>
         </div>
+      </CardHeader>
 
-        <div className={`p-8 ${bgColor}/20`}>
-          {jobs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {jobs.map((job) => (
-                <JobCard key={job.id} job={job} onCardClick={onCardClick} />
-              ))}
+      <CardContent className="pt-6">
+        {jobs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {jobs.map((job) => (
+              <JobCard key={job.id} job={job} onCardClick={onCardClick} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10">
+            <div className="text-3xl mb-3">
+              {typeof icon === "string" ? icon : (() => { const Icon = icon; return <Icon className="w-8 h-8 text-muted-foreground mx-auto" />; })()}
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">{icon}</div>
-              <p className={`${textColor} font-medium`}>{emptyMessage}</p>
-              <p className={`${textColor} text-sm mt-1 opacity-80`}>
-                {emptySubMessage}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+            <p className="text-muted-foreground font-medium">{emptyMessage}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {emptySubMessage}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

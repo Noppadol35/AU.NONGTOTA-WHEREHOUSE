@@ -1,4 +1,5 @@
 import JobSection from "./JobSection";
+import { Clock, Wrench, CheckCircle } from "lucide-react";
 
 interface JobOrder {
   id: number;
@@ -59,7 +60,7 @@ export default function JobOrdersList({
         borderColor="border-orange-200"
         bgColor="bg-orange-500"
         textColor="text-orange-800"
-        icon="🏎️"
+        icon={Clock}
       />
 
       {/* กำลังดำเนินการ Section */}
@@ -75,7 +76,7 @@ export default function JobOrdersList({
         borderColor="border-blue-200"
         bgColor="bg-blue-500"
         textColor="text-blue-800"
-        icon="⚙️"
+        icon={Wrench}
       />
 
       {/* เสร็จสิ้น Section */}
@@ -91,7 +92,7 @@ export default function JobOrdersList({
         borderColor="border-green-200"
         bgColor="bg-green-500"
         textColor="text-green-800"
-        icon="✅"
+        icon={CheckCircle}
       />
     </div>
   );
