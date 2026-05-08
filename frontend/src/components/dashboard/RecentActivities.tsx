@@ -7,7 +7,19 @@ import {
   FileText,
   AlertTriangle,
 } from "lucide-react";
-import { RecentActivity } from "@/services/dashboardService";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+export interface RecentActivity {
+  id: number;
+  action: string;
+  product?: string;
+  customer?: string;
+  car?: string;
+  qty?: number;
+  time: string;
+  type: 'stock-out' | 'stock-in' | 'job-order' | 'low-stock';
+}
 
 interface RecentActivitiesProps {
   activities: RecentActivity[];
@@ -48,79 +60,88 @@ export default function RecentActivities({
 }: RecentActivitiesProps) {
   if (!activities || activities.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5 lg:p-6">
-        <div className="flex items-center justify-between mb-4 md:mb-5">
-          <h3 className="text-base md:text-lg font-semibold text-gray-900">กิจกรรมล่าสุด</h3>
-          <Clock className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
-        </div>
-        <div className="text-center py-6 md:py-8 text-gray-500">
-          <Clock className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 text-gray-300" />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base md:text-lg">กิจกรรมล่าสุด</CardTitle>
+          <Clock className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="text-center py-6 md:py-8 text-muted-foreground">
+          <Clock className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 text-muted-foreground/30" />
           <p className="text-sm md:text-base">ยังไม่มีกิจกรรมล่าสุด</p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5 lg:p-6">
-      <div className="flex items-center justify-between mb-4 md:mb-5">
-        <h3 className="text-base md:text-lg font-semibold text-gray-900">กิจกรรมล่าสุด</h3>
-        <Clock className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
-      </div>
-      <div className="space-y-3 md:space-y-4">
-        {activities.slice(0, 5).map((activity, index) => (
-          <div
-            key={`activity-${activity.id}-${index}`}
-            className="flex flex-col p-3 md:p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors"
-          >
-            <div className="flex items-start space-x-3 mb-2 md:mb-3">
-              <div
-                className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${getActivityColor(
-                  activity.type
-                )} mt-2 flex-shrink-0`}
-              ></div>
-              <div className="flex items-start space-x-2 min-w-0 flex-1">
-                <div className="flex-shrink-0">
+    <Card className="border-none bg-white/60 backdrop-blur-xl shadow-lg">
+      <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-100/50">
+        <CardTitle className="text-lg font-bold bg-gradient-to-r from-gray-800 to-gray-500 bg-clip-text text-transparent">กิจกรรมล่าสุด</CardTitle>
+        <div className="p-2 bg-gray-100 rounded-full">
+          <Clock className="h-4 w-4 md:h-5 md:w-5 text-gray-500" />
+        </div>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          {activities.slice(0, 5).map((activity, index) => (
+            <div
+              key={`activity-${activity.id}-${index}`}
+              className="group relative flex flex-col p-4 md:p-5 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-300"
+            >
+              {/* Decorative accent line */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${getActivityColor(activity.type)} opacity-70 group-hover:opacity-100 transition-opacity`} />
+              
+              <div className="flex items-start space-x-4">
+                <div className={`p-2.5 rounded-xl bg-gray-50 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-gray-100/50`}>
                   {getActivityIcon(activity.type)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm md:text-base font-medium text-gray-900 break-words">
-                    {activity.action}
-                    {activity.product && `: ${activity.product}`}
-                    {activity.customer && `: ${activity.customer}`}
-                  </p>
-                  {activity.car && (
-                    <p className="text-xs md:text-sm text-gray-500 mt-1 break-words">
-                      รถ: {activity.car}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                    <p className="text-sm md:text-base font-semibold text-gray-900 break-words leading-tight">
+                      {activity.action}
                     </p>
-                  )}
-                  {activity.qty && (
-                    <p className="text-xs md:text-sm text-gray-500 mt-1 break-words">
-                      จำนวน: {activity.qty.toLocaleString()}
-                    </p>
-                  )}
+                    <div className="flex items-center space-x-1.5 text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-full w-fit">
+                      <Clock className="h-3 w-3" />
+                      <span>{activity.time}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-2 space-y-1">
+                    {activity.product && (
+                      <p className="text-sm text-gray-600 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                        <span className="font-medium text-gray-700">{activity.product}</span>
+                      </p>
+                    )}
+                    {activity.customer && (
+                      <p className="text-xs md:text-sm text-gray-500 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                        ลูกค้า: <span className="text-gray-700">{activity.customer}</span>
+                      </p>
+                    )}
+                    {activity.car && (
+                      <p className="text-xs md:text-sm text-gray-500 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                        รถ: <span className="font-medium text-gray-700">{activity.car}</span>
+                      </p>
+                    )}
+                    {activity.qty && (
+                      <p className="text-xs md:text-sm font-medium text-blue-600 bg-blue-50 w-fit px-2 py-0.5 rounded-md mt-2 border border-blue-100">
+                        จำนวน: {activity.qty.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
-                <span className="text-xs md:text-sm text-gray-500 font-medium">
-                  {activity.time}
-                </span>
-              </div>
-              <div className="text-xs text-gray-400">
-                ID: {activity.id}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 md:mt-5 text-center">
-        <button className="text-sm md:text-base text-blue-600 hover:text-blue-800 font-medium px-4 md:px-5 py-2 md:py-2.5 rounded-lg hover:bg-blue-50 transition-colors">
-          ดูทั้งหมด →
-        </button>
-      </div>
-    </div>
+          ))}
+        </div>
+        <div className="mt-6 md:mt-8 text-center">
+          <Button variant="outline" className="w-full sm:w-auto rounded-full border-gray-200 hover:bg-gray-50 text-gray-600 hover:text-gray-900 font-medium px-8 transition-colors">
+            ดูประวัติทั้งหมด
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

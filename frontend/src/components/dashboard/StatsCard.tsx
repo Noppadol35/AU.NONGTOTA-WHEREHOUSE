@@ -1,6 +1,7 @@
 "use client";
 
 import { LucideIcon } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface StatsCardProps {
   icon: LucideIcon;
@@ -15,36 +16,47 @@ interface StatsCardProps {
 }
 
 const colorClasses = {
-  blue: 'bg-blue-100 text-blue-600',
-  red: 'bg-red-100 text-red-600',
-  green: 'bg-green-100 text-green-600',
-  purple: 'bg-purple-100 text-purple-600',
-  orange: 'bg-orange-100 text-orange-600'
+  blue: 'from-blue-500 to-blue-600 shadow-blue-500/20',
+  red: 'from-red-500 to-red-600 shadow-red-500/20',
+  green: 'from-green-500 to-green-600 shadow-green-500/20',
+  purple: 'from-purple-500 to-purple-600 shadow-purple-500/20',
+  orange: 'from-orange-500 to-orange-600 shadow-orange-500/20'
+};
+
+const textClasses = {
+  blue: 'text-blue-600',
+  red: 'text-red-600',
+  green: 'text-green-600',
+  purple: 'text-purple-600',
+  orange: 'text-orange-600'
 };
 
 export default function StatsCard({ icon: Icon, title, value, color, subtitle, trend }: StatsCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 md:p-4 lg:p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-center">
-        <div className={`p-2 md:p-3 rounded-xl ${colorClasses[color]}`}>
-          <Icon className="h-5 w-5 md:h-6 md:w-6" />
-        </div>
-        <div className="ml-3 md:ml-4 flex-1 min-w-0">
-          <p className="text-xs md:text-sm font-medium text-gray-600 truncate">{title}</p>
-          <p className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 truncate">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-gray-500 mt-1 truncate">{subtitle}</p>
-          )}
+    <Card className="hover:shadow-lg transition-all duration-300 border-none bg-white/60 backdrop-blur-xl relative overflow-hidden group">
+      {/* Decorative background blur */}
+      <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 bg-gradient-to-br ${colorClasses[color]} blur-2xl group-hover:opacity-20 transition-opacity duration-500`} />
+      
+      <CardContent className="p-4 md:p-5 lg:p-6 flex flex-col justify-between h-full relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 md:p-3.5 rounded-2xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300`}>
+            <Icon className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2.5} />
+          </div>
           {trend && (
-            <div className="flex items-center mt-1">
-              <span className={`text-xs font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                {trend.isPositive ? '+' : ''}{trend.value}%
-              </span>
-              <span className="text-xs text-gray-500 ml-1">จากเดือนที่แล้ว</span>
+            <div className={`flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${trend.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {trend.isPositive ? '+' : ''}{trend.value}%
             </div>
           )}
         </div>
-      </div>
-    </div>
+        
+        <div className="flex flex-col min-w-0">
+          <p className="text-sm font-semibold text-muted-foreground mb-1 truncate">{title}</p>
+          <p className="text-2xl md:text-3xl font-extrabold text-foreground truncate tracking-tight">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-muted-foreground mt-2 truncate font-medium">{subtitle}</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
