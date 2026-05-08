@@ -107,3 +107,25 @@ export interface JobDetail {
   vatAmount?: number       // ภาษีมูลค่าเพิ่ม
   grandTotal?: number      // ยอดรวมทั้งหมด
 }
+
+// ── Chart Data Types ──────────────────────────────────────────────────────────
+
+export interface DailyTrendPoint {
+  date: string
+  jobCount: number
+  revenue: number
+}
+
+export interface SalesBreakdownItem {
+  productName: string
+  totalSold: number
+  revenue: number
+}
+
+export interface StockAgingItem {
+  productName: string
+  sku: string
+  stockQuantity: number
+  daysSinceLastSale: number
+  unitCost: number
+}

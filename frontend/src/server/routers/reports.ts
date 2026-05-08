@@ -248,4 +248,133 @@ export const reportsRouter = router({
         };
       });
     }),
+
+  // ── Chart Data Endpoints ─────────────────────────────────────────────────
+
+  dailyTrend: ownerProcedure
+    .input(z.object({ days: z.number().min(1).max(90).default(7) }))
+    .query(async ({ ctx, input }) => {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - input.days);
+      startDate.setHours(0, 0, 0, 0);
+
+      // Get job orders grouped by day
+      const jobOrders = await ctx.prisma.jobOrder.findMany({
+        where: { createdAt: { gte: startDate } },
+        select: { createdAt: true },
+      });
+
+      // Get paid bills grouped by day
+      const bills = await ctx.prisma.bill.findMany({
+        where: { status: "PAID", paidAt: { gte: startDate } },
+        select: { paidAt: true, grandTotal: true },
+      });
+
+      // Build a map of date -> { jobCount, revenue }
+      const dayMap = new Map<string, { jobCount: number; revenue: number }>();
+
+      // Pre-fill all days in the range
+      for (let i = 0; i < input.days; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const key = d.toISOString().split("T")[0];
+        dayMap.set(key, { jobCount: 0, revenue: 0 });
+      }
+      // Also include today
+      const todayKey = new Date().toISOString().split("T")[0];
+      if (!dayMap.has(todayKey)) {
+        dayMap.set(todayKey, { jobCount: 0, revenue: 0 });
+      }
+
+      jobOrders.forEach((jo) => {
+        const key = jo.createdAt.toISOString().split("T")[0];
+        const entry = dayMap.get(key);
+        if (entry) entry.jobCount += 1;
+      });
+
+      bills.forEach((bill) => {
+        if (!bill.paidAt) return;
+        const key = bill.paidAt.toISOString().split("T")[0];
+        const entry = dayMap.get(key);
+        if (entry) entry.revenue += Math.abs(bill.grandTotal || 0);
+      });
+
+      return Array.from(dayMap.entries())
+        .map(([date, data]) => ({ date, ...data }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    }),
+
+  salesBreakdown: ownerProcedure
+    .input(z.object({ days: z.number().min(1).max(90).default(30) }))
+    .query(async ({ ctx, input }) => {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - input.days);
+      startDate.setHours(0, 0, 0, 0);
+
+      const transactions = await ctx.prisma.stockTransaction.findMany({
+        where: { type: "SALE", createdAt: { gte: startDate } },
+        include: { product: { select: { name: true, sellPrice: true } } },
+      });
+
+      const productMap = new Map<number, { productName: string; totalSold: number; revenue: number }>();
+
+      transactions.forEach((tx) => {
+        const existing = productMap.get(tx.productId);
+        const qty = Math.abs(tx.qtyChange);
+        const rev = qty * (tx.product.sellPrice || 0);
+        if (existing) {
+          existing.totalSold += qty;
+          existing.revenue += rev;
+        } else {
+          productMap.set(tx.productId, {
+            productName: tx.product.name,
+            totalSold: qty,
+            revenue: rev,
+          });
+        }
+      });
+
+      return Array.from(productMap.values())
+        .sort((a, b) => b.totalSold - a.totalSold)
+        .slice(0, 10);
+    }),
+
+  stockAging: ownerProcedure.query(async ({ ctx }) => {
+    // Products with stock > 0
+    const products = await ctx.prisma.product.findMany({
+      where: { isDeleted: false, stockQuantity: { gt: 0 } },
+      select: { id: true, name: true, sku: true, stockQuantity: true, costPrice: true },
+    });
+
+    // Last SALE transaction per product
+    const lastSales = await ctx.prisma.stockTransaction.findMany({
+      where: {
+        type: "SALE",
+        productId: { in: products.map((p) => p.id) },
+      },
+      orderBy: { createdAt: "desc" },
+      distinct: ["productId"],
+      select: { productId: true, createdAt: true },
+    });
+
+    const lastSaleMap = new Map(lastSales.map((s) => [s.productId, s.createdAt]));
+    const now = new Date();
+
+    return products
+      .map((p) => {
+        const lastSale = lastSaleMap.get(p.id);
+        const daysSinceLastSale = lastSale
+          ? Math.floor((now.getTime() - lastSale.getTime()) / (1000 * 60 * 60 * 24))
+          : 999; // Never sold = very old
+        return {
+          productName: p.name,
+          sku: p.sku,
+          stockQuantity: p.stockQuantity,
+          daysSinceLastSale,
+          unitCost: p.costPrice || 0,
+        };
+      })
+      .sort((a, b) => b.daysSinceLastSale - a.daysSinceLastSale)
+      .slice(0, 15);
+  }),
 });
