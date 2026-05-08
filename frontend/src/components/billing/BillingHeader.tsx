@@ -1,49 +1,38 @@
 "use client";
 
 import { Receipt, Printer, Download } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface BillingHeaderProps {
   onPrint: () => void;
   onDownload: () => void;
 }
 
-export default function BillingHeader({
-  onPrint,
-  onDownload,
-}: BillingHeaderProps) {
+export default function BillingHeader({ onPrint, onDownload }: BillingHeaderProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-4 mb-4 lg:mb-0">
-          <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center">
-            <Receipt className="w-6 h-6 text-white" />
+    <Card className="border-none bg-white/60 backdrop-blur-xl shadow-lg">
+      <CardContent className="p-4 md:p-6 lg:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center shadow-sm">
+            <Receipt className="w-6 h-6 text-orange-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              ใบแจ้งหนี้ (Billing)
-            </h1>
-            <p className="text-gray-600">
-              รายละเอียดงานและประวัติการเบิกสินค้า
-            </p>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">ใบแจ้งหนี้ (Billing)</h1>
+            <p className="text-sm text-gray-500 mt-1">รายละเอียดงานและประวัติการเบิกสินค้า</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={onPrint}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onPrint} className="gap-2">
             <Printer className="w-4 h-4" />
             พิมพ์
-          </button>
-          <button
-            onClick={onDownload}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors"
-          >
+          </Button>
+          <Button variant="outline" onClick={onDownload} className="gap-2 text-orange-700 border-orange-200 hover:bg-orange-50">
             <Download className="w-4 h-4" />
             ดาวน์โหลด
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

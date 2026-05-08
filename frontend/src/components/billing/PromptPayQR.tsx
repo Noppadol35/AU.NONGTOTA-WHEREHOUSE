@@ -167,15 +167,15 @@ export default function PromptPayQR({ amount }: PromptPayQRProps) {
       <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 max-w-sm mx-auto">
         <div className="space-y-4">
           {/* PromptPay ID */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          {/* <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
                 <User />
               </div>
               <span className="text-sm font-medium text-gray-700">PromptPay ID</span>
             </div>
-            <span className="text-sm font-bold text-gray-900 font-mono">{promptPayId}</span>
-          </div>
+            <span className="text-sm font-bold text-gray-900">{promptPayId}</span>
+          </div> */}
 
           {/* Amount */}
           <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
@@ -187,7 +187,7 @@ export default function PromptPayQR({ amount }: PromptPayQRProps) {
               </div>
               <span className="text-sm font-medium text-gray-700">จำนวนเงิน</span>
             </div>
-            <span className="text-lg font-bold text-green-700">฿{amount.toFixed(2)}</span>
+            <span className="text-lg font-bold text-green-700">฿{amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
 

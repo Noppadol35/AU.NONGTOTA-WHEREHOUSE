@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface StatusMessagesProps {
   loading: boolean;
@@ -8,17 +8,13 @@ interface StatusMessagesProps {
   success: string | null;
 }
 
-export default function StatusMessages({
-  loading,
-  error,
-  success,
-}: StatusMessagesProps) {
+export default function StatusMessages({ loading, error, success }: StatusMessagesProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+        <div className="text-center flex flex-col items-center">
+          <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-3" />
+          <p className="text-muted-foreground text-sm font-medium">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     );
@@ -26,26 +22,18 @@ export default function StatusMessages({
 
   if (error) {
     return (
-      <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center">
-            <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-          </div>
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
+      <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+        <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+        <p className="text-sm text-red-700 font-medium">{error}</p>
       </div>
     );
   }
 
   if (success) {
     return (
-      <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-3 h-3 text-green-600" />
-          </div>
-          <p className="text-sm text-green-700">{success}</p>
-        </div>
+      <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
+        <p className="text-sm text-green-700 font-medium">{success}</p>
       </div>
     );
   }
