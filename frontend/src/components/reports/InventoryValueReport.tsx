@@ -3,31 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Package, TrendingUp, TrendingDown } from 'lucide-react'
-import { reportsService, InventoryItem, InventorySummary } from '@/services/reportsService'
+import { InventoryItem, InventorySummary } from '@/types/reports'
+import { trpc } from '@/lib/trpc'
 
 export default function InventoryValueReport() {
-  const [items, setItems] = useState<InventoryItem[]>([])
-  const [summary, setSummary] = useState<InventorySummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setError(null)
-        const data = await reportsService.getInventoryValueReport()
-        setItems(data.items)
-        setSummary(data.summary)
-      } catch (error: any) {
-        console.error('Failed to fetch inventory value report:', error)
-        setError(error.message || 'Failed to fetch inventory value report')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [])
+  const { data, isLoading: loading, error, refetch } = trpc.reports.inventoryValue.useQuery()
+  const items = data?.items || []
+  const summary = data?.summary || null
 
   if (loading) {
     return (
@@ -40,9 +22,9 @@ export default function InventoryValueReport() {
   if (error) {
     return (
       <div className="text-center text-red-600 py-8">
-        <p>เกิดข้อผิดพลาด: {error}</p>
+        <p>เกิดข้อผิดพลาด: {error.message}</p>
         <button 
-          onClick={() => window.location.reload()} 
+          onClick={() => refetch()} 
           className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           ลองใหม่

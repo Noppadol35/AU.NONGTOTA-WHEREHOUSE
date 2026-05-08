@@ -21,88 +21,41 @@ import {
   Package,
 } from "lucide-react";
 import {
-  reportsService,
   CustomerHistory,
   CustomerSummary,
   JobDetail,
-} from "@/services/reportsService";
+} from "@/types/reports";
+import { trpc } from "@/lib/trpc";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 
 export default function CustomerHistoryReport() {
-  const [customers, setCustomers] = useState<CustomerHistory[]>([]);
-  const [summary, setSummary] = useState<CustomerSummary | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "vip">("all");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerHistory | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [jobDetails, setJobDetails] = useState<JobDetail[]>([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setError(null);
-        setLoading(true);
-        const data = await reportsService.getCustomerHistoryReport(filter);
-        setCustomers(data.customers);
-        setSummary(data.summary);
-      } catch (error: any) {
-        console.error("Failed to fetch customer history report:", error);
-        setError(error.message || "Failed to fetch customer history report");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // tRPC queries
+  const { data: historyData, isLoading: loading, error, refetch } = trpc.reports.customerHistory.useQuery({ filter });
+  const customers = historyData?.customers || [];
+  const summary = historyData?.summary || null;
 
-    fetchData();
-  }, [filter]);
+  const { data: jobsData, isLoading: jobsLoading } = trpc.reports.customerJobs.useQuery(
+    { customerId: selectedCustomer?.id || 0 },
+    { enabled: !!selectedCustomer && selectedCustomer.totalJobs > 0 }
+  );
+  
+  // Use real data or fallback to empty array
+  const jobDetails = jobsData || [];
 
   const handleFilterChange = (value: string) => {
     setFilter(value as "all" | "active" | "vip");
   };
 
-  const handleCustomerClick = async (customer: CustomerHistory) => {
+  const handleCustomerClick = (customer: CustomerHistory) => {
     setSelectedCustomer(customer);
     setShowDetails(true);
-
-    // ถ้าลูกค้าไม่มีงาน ให้แสดง array ว่าง
-    if (customer.totalJobs === 0) {
-      setJobDetails([]);
-      return;
-    }
-
-    try {
-      // ดึงข้อมูลงานจริงจาก API
-      const realJobDetails = await reportsService.getCustomerJobs(customer.id);
-      setJobDetails(realJobDetails);
-      console.log(`🔍 ดึงข้อมูลงานของลูกค้า ${customer.customerName}: ${realJobDetails.length} งาน`);
-    } catch (error: any) {
-      console.error('Failed to fetch customer jobs:', error);
-      
-      // หากเกิดข้อผิดพลาด ให้ใช้ mock data แทน
-      const mockJobDetails: JobDetail[] = [
-        {
-          id: 1,
-          jobNumber: `JO-${customer.id.toString().padStart(4, "0")}-001`,
-          date: customer.lastVisit,
-          serviceType: "ไม่สามารถโหลดข้อมูลได้",
-          totalAmount: Math.round(customer.totalSpent / customer.totalJobs),
-          status: "completed",
-          items: [
-            {
-              productName: "ข้อมูลไม่พร้อมใช้งาน",
-              qty: 1,
-              unitPrice: 0,
-              totalPrice: 0,
-            },
-          ],
-          notes: "เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง",
-        },
-      ];
-      setJobDetails(mockJobDetails);
-    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -167,9 +120,9 @@ export default function CustomerHistoryReport() {
   if (error) {
     return (
       <div className="text-center text-red-600 py-8">
-        <p>เกิดข้อผิดพลาด: {error}</p>
+        <p>เกิดข้อผิดพลาด: {error.message}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => refetch()}
           className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           ลองใหม่
@@ -181,29 +134,30 @@ export default function CustomerHistoryReport() {
   return (
     <div className="space-y-6">
       {/* Header with Filter */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between ">
         <div>
-          <h3 className="text-lg font-semibold">ประวัติลูกค้า</h3>
+          <h3 className="text-lg font-semibold text-black">ประวัติลูกค้า</h3>
           <p className="text-sm text-gray-600">
             ข้อมูลลูกค้าและการใช้งานบริการ
           </p>
         </div>
-        <select
-          value={filter}
-          onChange={(e) => handleFilterChange(e.target.value)}
-          className="px-3 py-2 border rounded-md text-sm"
-        >
-          <option value="all">ทั้งหมด</option>
-          <option value="active">Active</option>
-          <option value="vip">VIP</option>
-        </select>
+        <Select value={filter} onValueChange={(val: any) => handleFilterChange(val)}>
+          <SelectTrigger className="w-[150px] bg-white text-black">
+            <SelectValue placeholder="ทั้งหมด" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทั้งหมด</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="vip">VIP</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ลูกค้าทั้งหมด</CardTitle>
+            <CardTitle className="text-sm font-medium text-black">ลูกค้าทั้งหมด</CardTitle>
             <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -450,6 +404,10 @@ export default function CustomerHistoryReport() {
                   <p className="text-xl font-medium text-gray-600">ยังไม่เคยใช้บริการ</p>
                   <p className="text-gray-500 mt-2">ลูกค้าคนนี้ยังไม่เคยใช้บริการในระบบ</p>
                 </div>
+              ) : jobsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
               ) : (
                 <div className="space-y-6">
                   {jobDetails.map((job) => (
@@ -472,13 +430,13 @@ export default function CustomerHistoryReport() {
                             job.status
                           )}`}
                         >
-                          {job.status === "completed" || job.status === "COMPLETED"
+                          {job.status === "COMPLETED"
                             ? "เสร็จสิ้น"
-                            : job.status === "in_progress" || job.status === "IN_PROGRESS"
+                            : job.status === "IN_PROGRESS"
                             ? "กำลังดำเนินการ"
-                            : job.status === "cancelled" || job.status === "CANCELLED"
+                            : job.status === "CANCELLED"
                             ? "ยกเลิก"
-                            : job.status === "pending" || job.status === "PENDING"
+                            : job.status === "OPEN"
                             ? "รอดำเนินการ"
                             : job.status}
                         </span>
@@ -530,7 +488,7 @@ export default function CustomerHistoryReport() {
                           <span>รายการสินค้า</span>
                         </h5>
                         <div className="space-y-2">
-                          {job.items.map((item, index) => (
+                          {job.items.map((item: any, index: number) => (
                             <div
                               key={index}
                               className="flex items-center justify-between text-sm"

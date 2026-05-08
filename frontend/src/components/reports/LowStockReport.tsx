@@ -3,31 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, Package, TrendingDown, AlertCircle } from 'lucide-react'
-import { reportsService, LowStockProduct, LowStockSummary } from '@/services/reportsService'
+import { LowStockProduct, LowStockSummary } from '@/types/reports'
+import { trpc } from '@/lib/trpc'
 
 export default function LowStockReport() {
-  const [products, setProducts] = useState<LowStockProduct[]>([])
-  const [summary, setSummary] = useState<LowStockSummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setError(null)
-        const data = await reportsService.getLowStockReport()
-        setProducts(data.products)
-        setSummary(data.summary)
-      } catch (error: any) {
-        console.error('Failed to fetch low stock report:', error)
-        setError(error.message || 'Failed to fetch low stock report')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [])
+  const { data, isLoading: loading, error, refetch } = trpc.reports.lowStock.useQuery()
+  const products = data?.products || []
+  const summary = data?.summary || null
 
   const getStockLevel = (stockQuantity: number, minStockLevel: number) => {
     const percentage = (stockQuantity / minStockLevel) * 100
@@ -75,9 +57,9 @@ export default function LowStockReport() {
   if (error) {
     return (
       <div className="text-center text-red-600 py-8">
-        <p>เกิดข้อผิดพลาด: {error}</p>
+        <p>เกิดข้อผิดพลาด: {error.message}</p>
         <button 
-          onClick={() => window.location.reload()} 
+          onClick={() => refetch()} 
           className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           ลองใหม่

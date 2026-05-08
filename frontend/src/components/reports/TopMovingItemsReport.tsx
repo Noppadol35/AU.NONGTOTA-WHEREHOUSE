@@ -3,33 +3,15 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, DollarSign, Package, BarChart3 } from 'lucide-react'
-import { reportsService, TopMovingItem, TopMovingSummary } from '@/services/reportsService'
+import { TopMovingItem, TopMovingSummary } from '@/types/reports'
+import { trpc } from '@/lib/trpc'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function TopMovingItemsReport() {
-  const [items, setItems] = useState<TopMovingItem[]>([])
-  const [summary, setSummary] = useState<TopMovingSummary | null>(null)
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>('month')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setError(null)
-        setLoading(true)
-        const data = await reportsService.getTopMovingItemsReport(timeRange)
-        setItems(data.items)
-        setSummary(data.summary)
-      } catch (error: any) {
-        console.error('Failed to fetch top moving items report:', error)
-        setError(error.message || 'Failed to fetch top moving items report')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [timeRange])
+  const { data, isLoading: loading, error, refetch } = trpc.reports.topMoving.useQuery({ timeRange })
+  const items = data?.items || []
+  const summary = data?.summary || null
 
   const handleTimeRangeChange = (value: string) => {
     setTimeRange(value as 'week' | 'month' | 'quarter')
@@ -55,9 +37,9 @@ export default function TopMovingItemsReport() {
   if (error) {
     return (
       <div className="text-center text-red-600 py-8">
-        <p>เกิดข้อผิดพลาด: {error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
+        <p>เกิดข้อผิดพลาด: {error.message}</p>
+        <button
+          onClick={() => refetch()}
           className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           ลองใหม่
@@ -71,18 +53,22 @@ export default function TopMovingItemsReport() {
       {/* Header with Time Range Selector */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">สินค้าขายดี</h3>
+          <h3 className="text-lg font-semibold text-black">สินค้าขายดี</h3>
           <p className="text-sm text-gray-600">สินค้าที่ขายได้มากที่สุดใน{getTimeRangeLabel(timeRange)}</p>
         </div>
-        <select 
-          value={timeRange} 
-          onChange={(e) => handleTimeRangeChange(e.target.value)}
-          className="px-3 py-2 border rounded-md text-sm"
+        <Select
+          value={timeRange}
+          onValueChange={(e) => handleTimeRangeChange(e)}
         >
-          <option value="week">สัปดาห์นี้</option>
-          <option value="month">เดือนนี้</option>
-          <option value="quarter">ไตรมาสนี้</option>
-        </select>
+          <SelectTrigger className="w-[150px] bg-white text-black">
+            <SelectValue placeholder="สัปดาห์นี้" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">สัปดาห์นี้</SelectItem>
+            <SelectItem value="month">เดือนนี้</SelectItem>
+            <SelectItem value="quarter">ไตรมาสนี้</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary Cards */}
@@ -171,10 +157,9 @@ export default function TopMovingItemsReport() {
                 {items.slice(0, 20).map((item, index) => (
                   <tr key={`${item.id}-${index}`} className="hover:bg-blue-50 transition-all duration-200">
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                        index < 3 ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white' : 
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${index < 3 ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white' :
                         index < 10 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'
-                      }`}>
+                        }`}>
                         #{index + 1}
                       </span>
                     </td>
@@ -202,11 +187,10 @@ export default function TopMovingItemsReport() {
                       {item.lastSold}
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        item.trend === 'up' ? 'bg-green-100 text-green-800' : 
-                        item.trend === 'down' ? 'bg-red-100 text-red-800' : 
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${item.trend === 'up' ? 'bg-green-100 text-green-800' :
+                        item.trend === 'down' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
                         <TrendingUp className={`w-3 h-3 ${item.trend === 'down' ? 'rotate-180' : ''}`} />
                         <span>{item.trend === 'up' ? 'ขึ้น' : item.trend === 'down' ? 'ลง' : 'คงที่'}</span>
                       </span>
