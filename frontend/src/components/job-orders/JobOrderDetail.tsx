@@ -69,11 +69,11 @@ type Props = {
 
 // ── Status config ────────────────────────────────────────────────────────────
 const STATUS_MAP: Record<string, { label: string; variant: "outline" | "default" | "secondary" | "destructive"; icon: typeof Clock }> = {
-  PENDING:     { label: "เปิดงาน",           variant: "outline",      icon: Clock },
-  OPEN:        { label: "เปิดงาน",           variant: "outline",      icon: Clock },
-  IN_PROGRESS: { label: "กำลังดำเนินการ",     variant: "default",      icon: Wrench },
-  COMPLETED:   { label: "เสร็จสิ้น",          variant: "secondary",    icon: CheckCircle },
-  CANCELLED:   { label: "ยกเลิก",            variant: "destructive",  icon: XCircle },
+  PENDING: { label: "เปิดงาน", variant: "outline", icon: Clock },
+  OPEN: { label: "เปิดงาน", variant: "outline", icon: Clock },
+  IN_PROGRESS: { label: "กำลังดำเนินการ", variant: "default", icon: Wrench },
+  COMPLETED: { label: "เสร็จสิ้น", variant: "secondary", icon: CheckCircle },
+  CANCELLED: { label: "ยกเลิก", variant: "destructive", icon: XCircle },
 };
 
 const DEFAULT_STATUS = { label: "ไม่ทราบ", variant: "outline" as const, icon: AlertTriangle };
@@ -157,9 +157,6 @@ export default function JobOrderDetail({ jobOrder, onClose, onEdit, onDelete }: 
               <p className="text-muted-foreground">งานสั่งทำรถยนต์</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
-           
-          </Button>
         </div>
 
         {/* Status + Actions */}
