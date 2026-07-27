@@ -7,6 +7,12 @@ export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
+    trustedOrigins: [
+        "https://wherehouse.au-nongtota.com",
+        "http://localhost:3000",
+        ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+        ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+    ],
     emailAndPassword: {
         enabled: true,
         // Override BetterAuth's default scrypt hashing with bcrypt
