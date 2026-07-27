@@ -57,10 +57,15 @@ export const usersRouter = router({
       branchId: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const userEmail = input.username.includes('@')
+        ? input.username
+        : `${input.username.toLowerCase()}@nongtota.com`;
+
       const existingUser = await ctx.prisma.user.findFirst({
         where: {
           OR: [
             { username: input.username },
+            { email: userEmail },
             { email: input.username },
           ],
         },
@@ -78,7 +83,7 @@ export const usersRouter = router({
       await ctx.prisma.user.create({
         data: {
           username: input.username,
-          email: input.username, // Using username as email for BetterAuth compatibility
+          email: userEmail,
           name: input.fullName,
           fullName: input.fullName,
           password: hashedPassword,
